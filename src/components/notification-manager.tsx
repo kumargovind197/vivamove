@@ -77,5 +77,3 @@ export default function NotificationManager({ user, currentSteps, dailyStepGoal 
 
   return null; // This is a non-visual component
 }
-
-    

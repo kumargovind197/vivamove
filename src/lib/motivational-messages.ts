@@ -182,5 +182,3 @@ export const getMotivationalMessage = (currentSteps: number, dailyStepGoal: numb
 
     return { id: milestoneId, message };
 };
-
-    
