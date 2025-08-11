@@ -1,7 +1,7 @@
 
 "use client"
 
-import { Line, LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Line, LineChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { ChartTooltip, ChartTooltipContent, ChartContainer, ChartConfig } from '@/components/ui/chart';
 import { ChartLegend, ChartLegendContent } from './ui/chart';
 
@@ -11,9 +11,10 @@ interface ActivityChartProps {
   dataKey: string;
   timeKey: string;
   type: 'bar' | 'line';
+  goal?: number;
 }
 
-export default function ActivityChart({ data, config, dataKey, timeKey, type }: ActivityChartProps) {
+export default function ActivityChart({ data, config, dataKey, timeKey, type, goal }: ActivityChartProps) {
   const ChartComponent = type === 'line' ? LineChart : BarChart;
   
   return (
@@ -34,6 +35,10 @@ export default function ActivityChart({ data, config, dataKey, timeKey, type }: 
             />
           <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
           <ChartLegend content={<ChartLegendContent />} />
+
+          {goal && (
+            <ReferenceLine y={goal} label={{ value: 'Target', position: 'insideTopLeft' }} stroke="hsl(var(--primary))" strokeDasharray="3 3" />
+          )}
           
           {type === 'line' ? (
             <Line dataKey={dataKey} type="monotone" stroke={`var(--color-${dataKey})`} strokeWidth={2} dot={{ r: 4, fill: `var(--color-${dataKey})` }} />
@@ -46,5 +51,3 @@ export default function ActivityChart({ data, config, dataKey, timeKey, type }: 
     </ChartContainer>
   );
 }
-
-    

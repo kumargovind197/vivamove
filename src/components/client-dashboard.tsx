@@ -13,6 +13,7 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Slider } from './ui/slider';
 import { MOCK_CLINICS } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
 
 type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
 
@@ -156,6 +157,17 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     }));
   }, [localDeviceData]);
 
+   const getCardColoring = (value: number, goal: number, isHigherBetter: boolean = true) => {
+    const progress = (value / goal) * 100;
+    if (isHigherBetter) {
+      if (progress < 75) return "bg-amber-600/10 border-amber-500/20";
+      if (progress >= 100) return "bg-green-600/10 border-green-500/20";
+    }
+    return ""; // Default
+  };
+
+  const daysMetProgress = (daysStepGoalMetMonthly / monthlyData.length) * 100;
+
 
   return (
     <>
@@ -233,14 +245,14 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                     <CardDescription>Your daily step count for the last 7 days. Your daily average was {weeklyAverage.toLocaleString()} steps.</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[350px]">
-                    <ActivityChart data={weeklyData} config={chartConfigSteps} dataKey={"steps"} timeKey="day" type="line" />
+                    <ActivityChart data={weeklyData} config={chartConfigSteps} dataKey={"steps"} timeKey="day" type="line" goal={dailyStepGoal} />
                 </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="monthly">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-6">
-                 <Card>
+                 <Card className={cn(getCardColoring(monthlyAverageSteps, dailyStepGoal))}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Daily Step Average</CardTitle>
                         <Footprints className="h-4 w-4 text-muted-foreground" />
@@ -250,7 +262,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                         <p className="text-xs text-muted-foreground">in the last 30 days</p>
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card className={cn(getCardColoring(daysMetProgress, 80))}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Step Goals Met</CardTitle>
                         <Trophy className="h-4 w-4 text-muted-foreground" />
@@ -288,7 +300,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                         <CardDescription>Your average step count for each day of the week over the last month.</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[350px]">
-                        <ActivityChart data={averageStepsByDay} config={chartConfigDailyAverage} dataKey="steps" timeKey="day" type="bar" />
+                        <ActivityChart data={averageStepsByDay} config={chartConfigDailyAverage} dataKey="steps" timeKey="day" type="bar" goal={dailyStepGoal}/>
                     </CardContent>
                 </Card>
                 <Card>
@@ -297,7 +309,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                         <CardDescription>Your average active minutes for each day of the week over the last month.</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[350px]">
-                        <ActivityChart data={averageMinutesByDay} config={chartConfigMinutes} dataKey="activeMinutes" timeKey="day" type="bar" />
+                        <ActivityChart data={averageMinutesByDay} config={chartConfigMinutes} dataKey="activeMinutes" timeKey="day" type="bar" goal={DAILY_MINUTE_GOAL} />
                     </CardContent>
                 </Card>
             </div>
