@@ -1,12 +1,12 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from './ui/dialog';
 import { Info } from 'lucide-react';
 
-const VivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
+const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg 
         version="1.1" 
         id="Layer_1" 
@@ -57,6 +57,16 @@ const VivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
 
 export default function AppInfoDialog() {
   const currentYear = new Date().getFullYear();
+  const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    // This function will run on the client side after the component mounts
+    const savedLogo = localStorage.getItem('vivaMoveLogo');
+    if (savedLogo) {
+      setVivaMoveLogo(savedLogo);
+    }
+  }, []);
+
 
   return (
     <Dialog>
@@ -69,7 +79,11 @@ export default function AppInfoDialog() {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <div className="flex items-center gap-4 mb-4">
-             <VivaMoveLogo className="h-8 w-auto" />
+             {vivaMoveLogo ? (
+                <img src={vivaMoveLogo} alt="ViVa Move Logo" className="h-8 w-auto" />
+              ) : (
+                <DefaultVivaMoveLogo className="h-8 w-auto" />
+              )}
              <div>
                 <DialogTitle className="text-xl">ViVa move</DialogTitle>
                 <DialogDescription>A motivational step tracking app.</DialogDescription>
@@ -103,3 +117,4 @@ export default function AppInfoDialog() {
     </Dialog>
   );
 }
+

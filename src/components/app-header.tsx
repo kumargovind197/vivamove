@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
@@ -11,7 +11,7 @@ import { MOCK_CLINICS } from '@/lib/mock-data';
 
 type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
 
-const VivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
+const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg 
         version="1.1" 
         id="Layer_1" 
@@ -68,6 +68,15 @@ type AppHeaderProps = {
 };
 
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
+  const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('vivaMoveLogo');
+    if (savedLogo) {
+      setVivaMoveLogo(savedLogo);
+    }
+  }, []);
+
 
   const renderClientBranding = () => {
     if (clinic) {
@@ -157,7 +166,11 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
 
           <div className="flex items-center gap-6">
              <div className="flex items-center gap-2">
-                <VivaMoveLogo className="h-8 w-auto" />
+                 {vivaMoveLogo ? (
+                    <img src={vivaMoveLogo} alt="ViVa Move Logo" className="h-8 w-auto" />
+                ) : (
+                    <DefaultVivaMoveLogo className="h-8 w-auto" />
+                )}
                 <div>
                     <span className="block text-sm font-semibold text-primary/80">ViVa move</span>
                     <span className="block text-[0.6rem] leading-tight text-muted-foreground">by Viva health solutions</span>
@@ -194,3 +207,4 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
     </>
   );
 }
+
