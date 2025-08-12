@@ -78,24 +78,24 @@ export default function Home() {
             const popupAds: Ad[] = savedPopupAds ? JSON.parse(savedPopupAds) : [];
             const footerAds: Ad[] = savedFooterAds ? JSON.parse(savedFooterAds) : [];
 
-            // Logic to decide which ad to show, could be random or based on other factors
-            const adDecision = Math.random();
-            if (adDecision < 0.5 && popupAds.length > 0) {
+            // Independently decide to show a pop-up ad
+            if (popupAds.length > 0) {
                 const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
                 setPopupAdContent(randomAd);
                 setShowPopupAd(true);
-                setShowFooterAd(false);
-            } else if (footerAds.length > 0) {
+            } else {
+                setShowPopupAd(false);
+            }
+            
+            // Independently decide to show a footer ad
+            if (footerAds.length > 0) {
                 const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
                 setFooterAdContent(randomAd);
-                setShowPopupAd(false);
                 setShowFooterAd(true);
-            } else if (popupAds.length > 0) {
-                 const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
-                 setPopupAdContent(randomAd);
-                 setShowPopupAd(true);
-                 setShowFooterAd(false);
+            } else {
+                setShowFooterAd(false);
             }
+
         } else {
             setShowPopupAd(false);
             setShowFooterAd(false);

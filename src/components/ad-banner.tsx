@@ -32,7 +32,7 @@ export default function AdBanner({ isPopupVisible, adContent }: AdBannerProps) {
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <Card className="w-full max-w-xs shadow-2xl overflow-hidden relative">
+      <Card className="w-[300px] shadow-2xl overflow-hidden relative">
          <button 
             onClick={(e) => {
               e.preventDefault();
@@ -46,14 +46,13 @@ export default function AdBanner({ isPopupVisible, adContent }: AdBannerProps) {
           </button>
         <CardContent className="p-0">
           <Link href={ensureAbsoluteUrl(adContent.targetUrl)} passHref legacyBehavior>
-             <a target="_blank" rel="noopener noreferrer" aria-label={adContent.description}>
+             <a target="_blank" rel="noopener noreferrer" aria-label={adContent.description} className="block aspect-[4/3] w-full h-full relative">
                 <Image 
                     data-ai-hint="running shoes"
                     src={adContent.imageUrl} 
                     alt={adContent.description} 
-                    width={400} 
-                    height={300}
-                    className="rounded-lg object-cover aspect-[4/3] cursor-pointer"
+                    fill
+                    className="object-cover cursor-pointer"
                 />
              </a>
           </Link>
