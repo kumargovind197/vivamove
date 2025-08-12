@@ -35,9 +35,9 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
         <div className="flex items-center gap-4">
           <Image
             data-ai-hint="medical logo"
-            src={clinic.logo.replace('128x128', '400x128')} // Assume we can request a wider version
+            src={clinic.logo.replace('128x128', '600x128')} // Assume we can request a wider version
             alt={`${clinic.name} Logo`}
-            width={140}
+            width={160}
             height={40}
             className="rounded-md object-contain"
             priority
