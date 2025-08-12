@@ -350,13 +350,29 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                  </Button>
                </div>
             )}
-             {(view === 'clinic' || view === 'admin') && (
+             {view === 'clinic' && isAdmin && (
                 <Button asChild variant="outline">
                     <Link href="/">
                         <UserCircle className="mr-2 h-4 w-4" />
                         <span>Client View</span>
                     </Link>
                 </Button>
+            )}
+            {view === 'admin' && isAdmin && (
+               <div className="flex items-center gap-2">
+                 <Button asChild variant="outline">
+                    <Link href="/clinic">
+                        <Hospital className="mr-2 h-4 w-4" />
+                        <span>Clinic View</span>
+                    </Link>
+                 </Button>
+                 <Button asChild variant="outline">
+                    <Link href="/">
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Client View</span>
+                    </Link>
+                 </Button>
+               </div>
             )}
           </div>
         </div>
