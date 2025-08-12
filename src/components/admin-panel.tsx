@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle, ShieldCheck } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
@@ -16,6 +15,7 @@ import { MOCK_USERS, addClinicUser, MOCK_CLINICS } from '@/lib/mock-data';
 import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
+import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
 
 const mockPatientHistoricalData = {
     'clinic-wellness': [
@@ -265,6 +265,9 @@ export default function AdminPanel() {
   const [isEditAdDialogOpen, setEditAdDialogOpen] = useState(false);
   const [editAdData, setEditAdData] = useState<{description: string, targetUrl: string, imageUrl: string}>({description: '', targetUrl: '', imageUrl: ''});
   const [editAdFileType, setEditAdFileType] = useState<'popup' | 'footer' | null>(null);
+  
+  const [adminEmail, setAdminEmail] = useState('');
+  const [isProcessingAdmin, setIsProcessingAdmin] = useState(false);
 
   const { toast } = useToast();
 
@@ -565,6 +568,36 @@ export default function AdminPanel() {
     setEditAdDialogOpen(false);
     setAdToEdit(null);
   };
+  
+  const handleSetAdmin = async () => {
+      if (!adminEmail) {
+          toast({ variant: 'destructive', title: 'Email Required', description: 'Please enter an email address.' });
+          return;
+      }
+      setIsProcessingAdmin(true);
+      try {
+          const result = await setAdminRole({ email: adminEmail });
+          if (result.message) {
+              toast({
+                  title: 'Success',
+                  description: result.message,
+              });
+              setAdminEmail('');
+          } else {
+             throw new Error(result.error || 'An unknown error occurred');
+          }
+
+      } catch (error: any) {
+          console.error("Set admin role error:", error);
+          toast({
+              variant: 'destructive',
+              title: 'Error Setting Admin Role',
+              description: error.message || 'Failed to set admin role. Check the logs for more details.',
+          });
+      } finally {
+          setIsProcessingAdmin(false);
+      }
+  };
 
 
   return (
@@ -582,6 +615,7 @@ export default function AdminPanel() {
             <TabsTrigger value="analysis"><PieChart className="mr-2" />Analysis</TabsTrigger>
             <TabsTrigger value="advertising"><Megaphone className="mr-2" />Advertising</TabsTrigger>
             <TabsTrigger value="viva-log"><Paintbrush className="mr-2" />Viva log</TabsTrigger>
+            <TabsTrigger value="security"><ShieldCheck className="mr-2" />Settings & Security</TabsTrigger>
          </TabsList>
         
         <div className="flex-grow">
@@ -895,6 +929,40 @@ export default function AdminPanel() {
                     </CardContent>
                     <CardFooter>
                         <Button onClick={handleVivaMoveLogoSave}>Save Global Logo</Button>
+                    </CardFooter>
+                </Card>
+            </TabsContent>
+             <TabsContent value="security">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Application Security</CardTitle>
+                        <CardDescription>
+                           Manage user roles and application access. You must be a designated primary admin to use these tools.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="admin-email">Grant Admin Privileges</Label>
+                            <p className="text-xs text-muted-foreground">Enter the email of an existing user to make them an admin. They will be able to access this panel.</p>
+                            <div className="flex w-full max-w-sm items-center space-x-2">
+                                <Input 
+                                    type="email" 
+                                    id="admin-email" 
+                                    placeholder="user@example.com" 
+                                    value={adminEmail}
+                                    onChange={(e) => setAdminEmail(e.target.value)}
+                                    disabled={isProcessingAdmin}
+                                />
+                                <Button onClick={handleSetAdmin} disabled={isProcessingAdmin}>
+                                    {isProcessingAdmin ? 'Processing...' : 'Make Admin'}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                     <CardFooter>
+                         <p className="text-xs text-muted-foreground">
+                            Changes to user roles may require the user to log out and log back in to take effect.
+                         </p>
                     </CardFooter>
                 </Card>
             </TabsContent>
