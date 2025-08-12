@@ -68,6 +68,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   
   // This state now simulates the data stored locally on the user's phone.
   const [localDeviceData, setLocalDeviceData] = useState<any[]>([]);
+  const [dashboardMessage, setDashboardMessage] = useState<string | null>(null);
 
   useEffect(() => {
     // Generate mock data on client-side only to prevent hydration mismatch
@@ -81,15 +82,15 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   
 
   const getProgressColorClass = (progress: number) => {
-    if (progress < 40) return "bg-amber-500";
-    if (progress < 80) return "bg-yellow-400";
+    if (progress < 40) return "bg-red-500";
+    if (progress < 80) return "bg-amber-500";
     return "bg-green-500";
   };
   
   const getRingColor = (progress: number) => {
-    if (progress < 40) return "hsl(var(--destructive))";
-    if (progress < 80) return "hsl(36, 83%, 50%)"; // amber
-    return "hsl(var(--primary))";
+    if (progress < 40) return "#ef4444"; // red-500
+    if (progress < 80) return "#f59e0b"; // amber-500
+    return "#22c55e"; // green-500
   }
 
   const handleSaveGoal = () => {
@@ -222,7 +223,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
               </Button>
             </CardHeader>
             <CardContent>
-              <Progress value={stepProgress} trackClassName='bg-red-800/20' indicatorClassName={getProgressColorClass(stepProgress)} />
+              <Progress value={stepProgress} trackClassName='bg-muted' indicatorClassName={cn(getProgressColorClass(stepProgress), 'animate-pulse-bright')} />
               <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                  <span>{steps?.toLocaleString() ?? 0} / {dailyStepGoal.toLocaleString()}</span>
                 <span>{Math.round(stepProgress)}%</span>
@@ -240,7 +241,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
               </CardDescription>
             </CardHeader>
             <CardContent className="flex items-center justify-center">
-              <ProgressRing progress={minuteProgress} color={getRingColor(minuteProgress)} trackColor="hsl(var(--destructive), 0.2)" />
+              <ProgressRing progress={minuteProgress} color={getRingColor(minuteProgress)} trackColor="hsl(var(--muted))" className="animate-pulse-bright" />
             </CardContent>
           </Card>
         </div>

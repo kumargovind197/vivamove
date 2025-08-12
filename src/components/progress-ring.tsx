@@ -2,14 +2,16 @@
 "use client"
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { cn } from '@/lib/utils';
 
 interface ProgressRingProps {
   progress: number; // 0 to 100
   color: string;
   trackColor?: string;
+  className?: string;
 }
 
-const ProgressRing: React.FC<ProgressRingProps> = ({ progress, color, trackColor }) => {
+const ProgressRing: React.FC<ProgressRingProps> = ({ progress, color, trackColor, className }) => {
   const safeProgress = Math.max(0, Math.min(100, progress));
   const data = [
     { name: 'Completed', value: safeProgress },
@@ -17,7 +19,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ progress, color, trackColor
   ];
   
   return (
-    <div style={{ width: '150px', height: '150px', position: 'relative' }}>
+    <div className={cn("w-[150px] h-[150px] relative", className)}>
       <ResponsiveContainer>
         <PieChart>
           <Pie
@@ -54,5 +56,3 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ progress, color, trackColor
 };
 
 export default ProgressRing;
-
-    
