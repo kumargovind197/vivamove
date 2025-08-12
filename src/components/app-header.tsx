@@ -8,6 +8,7 @@ import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucid
 import { Button } from '@/components/ui/button';
 import type { User } from 'firebase/auth';
 import { MOCK_CLINICS } from '@/lib/mock-data';
+import { useAuth } from '@/hooks/useAuth';
 
 type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
 
@@ -208,7 +209,7 @@ type AppHeaderProps = {
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin } = useAuth(); // Use the hook to get admin status
 
   useEffect(() => {
     // This function will run on the client side after the component mounts
@@ -220,19 +221,6 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
       setDefaultVivaMoveLogo(<VivaMoveLogo className="h-8 w-auto" />);
     }
   }, []);
-
-  useEffect(() => {
-      const checkAdminStatus = async () => {
-          if (user) {
-              const tokenResult = await user.getIdTokenResult();
-              setIsAdmin(!!tokenResult.claims.admin);
-          } else {
-              setIsAdmin(false);
-          }
-      };
-      checkAdminStatus();
-  }, [user]);
-
 
   const renderClientBranding = () => {
     if (clinic) {
@@ -333,46 +321,35 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                     <span className="block text-[0.6rem] leading-tight text-muted-foreground">by Viva health solutions</span>
                 </div>
              </div>
-
-            {isAdmin && view === 'client' && (
-               <div className="flex items-center gap-2">
-                 <Button asChild variant="outline">
-                    <Link href="/clinic">
-                        <Hospital className="mr-2 h-4 w-4" />
-                        <span>Clinic View</span>
-                    </Link>
-                 </Button>
-                 <Button asChild variant="outline">
-                    <Link href="/admin">
-                        <Wrench className="mr-2 h-4 w-4" />
-                        <span>Admin</span>
-                    </Link>
-                 </Button>
-               </div>
-            )}
-             {view === 'clinic' && isAdmin && (
-                <Button asChild variant="outline">
-                    <Link href="/">
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        <span>Client View</span>
-                    </Link>
-                </Button>
-            )}
-            {view === 'admin' && isAdmin && (
-               <div className="flex items-center gap-2">
-                 <Button asChild variant="outline">
-                    <Link href="/clinic">
-                        <Hospital className="mr-2 h-4 w-4" />
-                        <span>Clinic View</span>
-                    </Link>
-                 </Button>
-                 <Button asChild variant="outline">
-                    <Link href="/">
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        <span>Client View</span>
-                    </Link>
-                 </Button>
-               </div>
+            
+            {/* Conditional rendering of admin buttons based on the useAuth hook */}
+            {isAdmin && (
+              <div className="flex items-center gap-2">
+                {view !== 'client' && (
+                  <Button asChild variant="outline">
+                      <Link href="/">
+                          <UserCircle className="mr-2 h-4 w-4" />
+                          <span>Client View</span>
+                      </Link>
+                  </Button>
+                )}
+                {view !== 'clinic' && (
+                  <Button asChild variant="outline">
+                      <Link href="/clinic">
+                          <Hospital className="mr-2 h-4 w-4" />
+                          <span>Clinic View</span>
+                      </Link>
+                  </Button>
+                )}
+                {view !== 'admin' && (
+                  <Button asChild variant="outline">
+                      <Link href="/admin">
+                          <Wrench className="mr-2 h-4 w-4" />
+                          <span>Admin</span>
+                      </Link>
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>

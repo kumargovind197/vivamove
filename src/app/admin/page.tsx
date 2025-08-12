@@ -7,7 +7,7 @@ import AppHeader from '@/components/app-header';
 import AdminPanel from '@/components/admin-panel';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, ShieldOff } from 'lucide-react';
+import { ShieldOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -28,6 +28,7 @@ export default function AdminPage() {
     );
   }
 
+  // This check is now robust. It blocks anyone who is not the designated admin.
   if (!user || !isAdmin) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">

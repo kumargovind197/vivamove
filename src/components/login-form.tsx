@@ -25,27 +25,32 @@ export default function LoginForm() {
     setIsLoading(true);
 
     const lowerCaseIdentifier = identifier.toLowerCase();
+    
+    // --- MOCK USER LOGIN CHECK ---
     const mockUserKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseIdentifier);
     const mockUserData = mockUserKey ? MOCK_USERS[mockUserKey as keyof typeof MOCK_USERS] : null;
 
-    // --- MOCK USER LOGIN ---
     if (mockUserData && mockUserData.password === password) {
         toast({
             title: "Login Successful",
             description: "Redirecting...",
         });
-        // Special redirect for the hardcoded admin user
-        if (lowerCaseIdentifier === 'vinitkiranshah@gmail.com') {
-             router.push('/admin');
-        } else {
-             router.push(mockUserData.redirect || '/');
-        }
+
+        // Use session storage for mock users to persist state across page loads
+        sessionStorage.setItem('mockUser', mockUserKey); 
+        
+        // Force a storage event to trigger the useAuth hook update immediately
+        window.dispatchEvent(new Event('storage'));
+
+        router.push(mockUserData.redirect || '/');
         return;
     }
     
     // --- FIREBASE AUTH LOGIN (for real users) ---
     try {
-      // We assume if it's not a mock user, the identifier is an email for Firebase Auth
+      // Clear any mock user session before trying a real login
+      sessionStorage.removeItem('mockUser');
+
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
       const user = userCredential.user;
 
@@ -53,30 +58,28 @@ export default function LoginForm() {
         title: "Login Successful",
         description: `Redirecting...`,
       });
-
-       // This part is now less critical as the primary admin redirect is handled above,
-       // but it's good as a fallback.
-       if (user.email && user.email.toLowerCase() === 'vinitkiranshah@gmail.com') {
+      
+       // This check is still good for real Firebase users
+       const tokenResult = await user.getIdTokenResult();
+       if (tokenResult.claims.admin) {
            router.push('/admin');
        } else {
-            // Check for redirect path in mock data even for Firebase users if needed
-            const fbUserKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === user.email?.toLowerCase());
-            const fbUserData = fbUserKey ? MOCK_USERS[fbUserKey as keyof typeof MOCK_USERS] : undefined;
-            router.push(fbUserData?.redirect || '/');
+           // Fallback for non-admin real users if needed
+           router.push('/');
        }
+
     } catch (error: any) {
-      console.error("Login Error:", error);
-       // We show a generic error message regardless of whether it was a mock or firebase failure
+       console.error("Login Error:", error);
        toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid credentials. Please try again.",
+        description: "Invalid credentials. Please check your username and password.",
       });
     } finally {
         setIsLoading(false);
     }
   };
-
+  
   const handlePasswordRecovery = async () => {
     if (!identifier) {
       toast({
@@ -92,19 +95,19 @@ export default function LoginForm() {
         await sendPasswordResetEmail(auth, identifier);
         toast({
             title: 'Password Recovery Email Sent',
-            description: `If an account exists for ${identifier}, a recovery link has been sent. Please check your inbox.`,
+            description: `If a real account exists for ${identifier}, a recovery link has been sent. This does not apply to mock users.`,
         });
     } catch (error: any) {
         console.error("Password Reset Error:", error);
-        // Display a generic message to avoid leaking information about which emails are registered.
         toast({
             title: 'Password Recovery Email Sent',
-            description: `If an account exists for ${identifier}, a recovery link has been sent. Please check your inbox.`,
+            description: `If a real account exists for ${identifier}, a recovery link has been sent. This does not apply to mock users.`,
         });
     } finally {
         setIsLoading(false);
     }
   }
+
 
   return (
     <Card>

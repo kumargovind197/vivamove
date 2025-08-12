@@ -15,12 +15,22 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { LogOut } from 'lucide-react';
+import { auth } from '@/lib/firebase';
 
 export default function LogoutButton() {
   const router = useRouter();
 
   const handleLogout = () => {
-    // In a real app, this would also clear any authentication tokens or session data.
+    // Clear the mock user session storage
+    sessionStorage.removeItem('mockUser');
+    
+    // Sign out the real firebase user if they are logged in
+    auth.signOut();
+    
+    // Force a storage event to trigger the useAuth hook update immediately
+    window.dispatchEvent(new Event('storage'));
+
+    // Redirect to the login page
     router.push('/login');
   };
 
