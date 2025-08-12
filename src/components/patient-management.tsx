@@ -25,7 +25,7 @@ import { Checkbox } from './ui/checkbox';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { MOCK_USERS, removeUser, MOCK_CLINICS } from '@/lib/mock-data';
+import { MOCK_USERS, removeUser, MOCK_CLINICS, addUser } from '@/lib/mock-data';
 
 const initialPatientsData = [
   { id: '1', uhid: 'UHID-001', firstName: 'John', surname: 'Smith', email: 'john.smith@example.com', age: 45, gender: 'Male', weeklySteps: 85, weeklyMinutes: 100, monthlySteps: 75, monthlyMinutes: 80 },
@@ -171,6 +171,17 @@ export default function PatientManagement() {
 
   const handleAddPatient = () => {
     if (newPatient.uhid && newPatient.firstName && newPatient.surname && newPatient.email && newPatient.age && newPatient.gender) {
+      
+      const userAdded = addUser(newPatient.email, 'client', '/');
+      if (!userAdded) {
+          toast({
+              variant: "destructive",
+              title: "Registration Failed",
+              description: `A user with the email '${newPatient.email}' already exists.`,
+          });
+          return;
+      }
+      
       const newPatientWithId = { 
           ...newPatient, 
           age: parseInt(newPatient.age),
@@ -183,8 +194,8 @@ export default function PatientManagement() {
       setPatientsData(prev => [...prev, newPatientWithId]);
       
       toast({
-        title: "Patient Registered & Invite Sent",
-        description: `An email invite for ${newPatient.firstName} ${newPatient.surname} has been sent to ${newPatient.email}. It contains a secure, one-time link to set their password and instructions for downloading the app.`,
+        title: "Patient Registered & Login Created",
+        description: `${newPatient.firstName} can now log in with the email ${newPatient.email} and the default password 'password'. They will be prompted to reset it.`,
         duration: 8000,
       });
 

@@ -6,7 +6,7 @@
 export let MOCK_USERS: Record<string, { role: 'client' | 'clinic' | 'admin', password: string, redirect: string }> = {
     'patient@example.com': { role: 'client', password: 'password', redirect: '/' },
     'clinic-wellness': { role: 'clinic', password: 'password123', redirect: '/clinic' },
-    'admin@example.com': { role: 'admin', password: 'adminpassword', redirect: '/admin' },
+    'vinitkiranshah@gmail.com': { role: 'admin', password: 'adminpassword', redirect: '/admin' },
     'john.smith@example.com': { role: 'client', password: 'password', redirect: '/' },
     'emily.jones@example.com': { role: 'client', password: 'password', redirect: '/' },
     'michael.johnson@example.com': { role: 'client', password: 'password', redirect: '/' },
@@ -39,6 +39,17 @@ export function removeUser(email: string) {
         console.log(`User ${email} removed from mock database.`);
     }
 }
+
+// Function to add a new user to the mock database. Default password is 'password'
+export function addUser(email: string, role: 'client' | 'clinic', redirect: string, password = 'password'): boolean {
+    const userKey = email.toLowerCase();
+    if (MOCK_USERS[userKey]) {
+        return false; // User already exists
+    }
+    MOCK_USERS[userKey] = { role, password, redirect };
+    return true;
+}
+
 
 // Function to add a new clinic user to the mock database
 export function addClinicUser(clinicId: string, password: string, overwrite: boolean = false): boolean {
