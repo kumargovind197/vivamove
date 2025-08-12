@@ -3,7 +3,8 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
     getAuth, 
     GoogleAuthProvider, 
-    signInWithEmailAndPassword
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail
 } from "firebase/auth";
 import type { User } from 'firebase/auth';
 
@@ -25,6 +26,7 @@ const provider = new GoogleAuthProvider();
 export { 
     auth, 
     provider,
-    signInWithEmailAndPassword
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail
 };
 export type { User };

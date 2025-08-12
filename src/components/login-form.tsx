@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { auth, signInWithEmailAndPassword } from '@/lib/firebase';
+import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
 import { MOCK_USERS } from '@/lib/mock-data'; // Keep for role-based redirect for now
 
 export default function LoginForm() {
@@ -51,29 +51,33 @@ export default function LoginForm() {
     }
   };
 
-  const handlePasswordRecovery = () => {
+  const handlePasswordRecovery = async () => {
     if (!email) {
-        toast({
-            variant: 'destructive',
-            title: 'Email Required',
-            description: 'Please enter your admin email address to recover your password.',
-        });
-        return;
-    }
-    if (email.toLowerCase() !== 'admin@example.com') {
-         toast({
-            variant: 'destructive',
-            title: 'Recovery Not Applicable',
-            description: 'Password recovery is only available for the admin account.',
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter your email address to recover your password.',
+      });
+      return;
     }
 
-    // Simulate sending a password reset email
-    toast({
-        title: 'Password Recovery Email Sent',
-        description: `If an account exists for ${email}, a recovery link has been sent.`,
-    });
+    setIsLoading(true);
+    try {
+        await sendPasswordResetEmail(auth, email);
+        toast({
+            title: 'Password Recovery Email Sent',
+            description: `If an account exists for ${email}, a recovery link has been sent. Please check your inbox.`,
+        });
+    } catch (error: any) {
+        console.error("Password Reset Error:", error);
+        // Display a generic message to avoid leaking information about which emails are registered.
+        toast({
+            title: 'Password Recovery Email Sent',
+            description: `If an account exists for ${email}, a recovery link has been sent. Please check your inbox.`,
+        });
+    } finally {
+        setIsLoading(false);
+    }
   }
 
   return (
@@ -131,8 +135,9 @@ export default function LoginForm() {
             size="sm" 
             onClick={handlePasswordRecovery}
             className="text-muted-foreground"
+            disabled={isLoading}
             >
-            Forgot Password? (Admin only)
+            Forgot Password?
           </Button>
         </CardFooter>
       </form>
