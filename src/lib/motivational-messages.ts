@@ -448,4 +448,3 @@ export const getDashboardMessage = (currentSteps: number, dailyStepGoal: number)
     return messages[randomIndex];
 }
 
-    
