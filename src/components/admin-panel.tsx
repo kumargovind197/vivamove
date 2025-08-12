@@ -1,13 +1,13 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, ShieldCheck, BadgeCheck, BadgeAlert } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, ShieldCheck, BadgeCheck, BadgeAlert, Sparkles } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
@@ -60,9 +60,20 @@ export default function AdminPanel() {
   const [adminEmail, setAdminEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [vivaMoveLogoFile, setVivaMoveLogoFile] = useState<File | null>(null);
+  const [vivaMoveLogoPreview, setVivaMoveLogoPreview] = useState<string | null>(null);
+
   const { toast } = useToast();
 
-  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'new' | 'edit') => {
+  useEffect(() => {
+    // Load the saved ViVa move logo from local storage on component mount
+    const savedLogo = localStorage.getItem('vivaMoveLogo');
+    if (savedLogo) {
+      setVivaMoveLogoPreview(savedLogo);
+    }
+  }, []);
+
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'new' | 'edit' | 'viva') => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -75,6 +86,9 @@ export default function AdminPanel() {
             setEditedLogoFile(file);
             setEditedLogoPreview(result);
             setClinicToEdit(prev => prev ? { ...prev, logo: result } : null);
+        } else if (type === 'viva') {
+            setVivaMoveLogoFile(file);
+            setVivaMoveLogoPreview(result);
         }
       };
       reader.readAsDataURL(file);
@@ -247,6 +261,22 @@ export default function AdminPanel() {
       }
   }
 
+  const handleSaveVivaLogo = () => {
+    if (vivaMoveLogoPreview) {
+      localStorage.setItem('vivaMoveLogo', vivaMoveLogoPreview);
+      toast({
+        title: "Branding Updated",
+        description: "The ViVa move logo has been saved and will be updated across the app.",
+      });
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'No Logo to Save',
+        description: 'Please upload a logo first.',
+      })
+    }
+  }
+
   return (
     <>
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -261,6 +291,7 @@ export default function AdminPanel() {
             <TabsTrigger value="clinics"><Building className="mr-2" />Clinics</TabsTrigger>
             <TabsTrigger value="analysis"><PieChart className="mr-2" />Analysis</TabsTrigger>
             <TabsTrigger value="security"><ShieldCheck className="mr-2" />Security</TabsTrigger>
+            <TabsTrigger value="branding"><Sparkles className="mr-2" />Branding</TabsTrigger>
          </TabsList>
         
         <div className="flex-grow">
@@ -480,6 +511,45 @@ export default function AdminPanel() {
                     </CardFooter>
                 </Card>
             </TabsContent>
+            <TabsContent value="branding">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>ViVa move Logo</CardTitle>
+                        <CardDescription>Upload the main logo for the ViVa move app. This will be displayed globally.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        <div className="space-y-2">
+                            <Label>Logo Preview & Upload</Label>
+                            <div className="flex items-center gap-4">
+                            {vivaMoveLogoPreview ? (
+                                <img src={vivaMoveLogoPreview} alt="ViVa move Logo Preview" className="h-16 w-auto rounded-md object-contain bg-muted p-2" />
+                            ) : (
+                                <div className="h-20 w-40 rounded-md bg-muted flex items-center justify-center">
+                                <Sparkles className="h-8 w-8 text-muted-foreground" />
+                                </div>
+                            )}
+                            <div className="grid w-full max-w-sm items-center gap-1.5">
+                                <Label htmlFor="viva-logo-upload" className="sr-only">Upload Logo</Label>
+                                <div className="flex items-center gap-2">
+                                    <Input id="viva-logo-upload" type="file" accept="image/*" onChange={(e) => handleLogoChange(e, 'viva')} className="hidden" />
+                                    <Button asChild variant="outline">
+                                        <label htmlFor="viva-logo-upload" className="cursor-pointer">
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            Upload Logo
+                                        </label>
+                                    </Button>
+                                    {vivaMoveLogoFile && <p className="text-sm text-muted-foreground">{vivaMoveLogoFile.name}</p>}
+                                </div>
+                            </div>
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">The logo will be saved to the browser's local storage. This will update the logo across the app on this device.</p>
+                    </CardContent>
+                    <CardFooter>
+                        <Button onClick={handleSaveVivaLogo}>Save Logo</Button>
+                    </CardFooter>
+                </Card>
+            </TabsContent>
         </div>
       </Tabs>
     </div>
@@ -554,7 +624,5 @@ export default function AdminPanel() {
     </>
   );
 }
-
-    
 
     
