@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
-import { MOCK_USERS } from '@/lib/mock-data'; // Keep for role-based redirect for now
+import { MOCK_USERS } from '@/lib/mock-data';
 
 export default function LoginForm() {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -24,38 +24,53 @@ export default function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
 
+    const lowerCaseIdentifier = identifier.toLowerCase();
+    const mockUserKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseIdentifier);
+    const mockUserData = mockUserKey ? MOCK_USERS[mockUserKey as keyof typeof MOCK_USERS] : null;
+
+    // --- MOCK USER LOGIN ---
+    if (mockUserData && mockUserData.password === password) {
+        toast({
+            title: "Login Successful",
+            description: "Redirecting...",
+        });
+        // Special redirect for the hardcoded admin user
+        if (lowerCaseIdentifier === 'vinitkiranshah@gmail.com') {
+             router.push('/admin');
+        } else {
+             router.push(mockUserData.redirect || '/');
+        }
+        return;
+    }
+    
+    // --- FIREBASE AUTH LOGIN (for real users) ---
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      
-      const lowerCaseEmail = email.toLowerCase();
-
-      // Explicitly check for the hardcoded admin user for redirection.
-      if (lowerCaseEmail === 'vinitkiranshah@gmail.com') {
-          toast({
-            title: "Admin Login Successful",
-            description: `Redirecting to Admin Panel...`,
-          });
-          router.push('/admin');
-          return;
-      }
-
-      // Fallback to mock data for other role-based redirects
-      const userKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseEmail);
-      const userRoleData = userKey ? MOCK_USERS[userKey as keyof typeof MOCK_USERS] : undefined;
-      const redirectPath = userRoleData?.redirect || '/';
+      // We assume if it's not a mock user, the identifier is an email for Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
+      const user = userCredential.user;
 
       toast({
         title: "Login Successful",
         description: `Redirecting...`,
       });
-      router.push(redirectPath);
 
+       // This part is now less critical as the primary admin redirect is handled above,
+       // but it's good as a fallback.
+       if (user.email && user.email.toLowerCase() === 'vinitkiranshah@gmail.com') {
+           router.push('/admin');
+       } else {
+            // Check for redirect path in mock data even for Firebase users if needed
+            const fbUserKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === user.email?.toLowerCase());
+            const fbUserData = fbUserKey ? MOCK_USERS[fbUserKey as keyof typeof MOCK_USERS] : undefined;
+            router.push(fbUserData?.redirect || '/');
+       }
     } catch (error: any) {
-      console.error("Firebase Auth Error:", error);
-      toast({
+      console.error("Login Error:", error);
+       // We show a generic error message regardless of whether it was a mock or firebase failure
+       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: "Invalid credentials. Please try again.",
       });
     } finally {
         setIsLoading(false);
@@ -63,7 +78,7 @@ export default function LoginForm() {
   };
 
   const handlePasswordRecovery = async () => {
-    if (!email) {
+    if (!identifier) {
       toast({
         variant: 'destructive',
         title: 'Email Required',
@@ -74,17 +89,17 @@ export default function LoginForm() {
 
     setIsLoading(true);
     try {
-        await sendPasswordResetEmail(auth, email);
+        await sendPasswordResetEmail(auth, identifier);
         toast({
             title: 'Password Recovery Email Sent',
-            description: `If an account exists for ${email}, a recovery link has been sent. Please check your inbox.`,
+            description: `If an account exists for ${identifier}, a recovery link has been sent. Please check your inbox.`,
         });
     } catch (error: any) {
         console.error("Password Reset Error:", error);
         // Display a generic message to avoid leaking information about which emails are registered.
         toast({
             title: 'Password Recovery Email Sent',
-            description: `If an account exists for ${email}, a recovery link has been sent. Please check your inbox.`,
+            description: `If an account exists for ${identifier}, a recovery link has been sent. Please check your inbox.`,
         });
     } finally {
         setIsLoading(false);
@@ -100,13 +115,13 @@ export default function LoginForm() {
       <form onSubmit={handleLogin}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email or Username</Label>
+            <Label htmlFor="identifier">Email or Clinic ID</Label>
             <Input
-              id="email"
+              id="identifier"
               type="text"
-              placeholder="e.g., patient@example.com or your_username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g., patient@example.com or clinic-wellness"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
               disabled={isLoading}
             />
