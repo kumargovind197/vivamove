@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApps, App, getApp } from 'firebase-admin/app';
+import { initializeApp, getApps, App, getApp, applicationDefault } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 const SetAdminRoleInputSchema = z.object({
