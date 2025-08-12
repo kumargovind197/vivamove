@@ -224,7 +224,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
             data-ai-hint="medical logo"
             src={clinic.logo.replace('128x128', '600x128')} // Assume we can request a wider version
             alt={`${clinic.name} Logo`}
-            width={160}
+            width={320}
             height={40}
             className="rounded-md object-contain"
             priority
