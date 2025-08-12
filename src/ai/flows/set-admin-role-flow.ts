@@ -7,7 +7,6 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import * as admin from 'firebase-admin';
 import { PRIMARY_ADMINS } from '@/lib/admin-config';
-import { auth } from 'firebase-admin';
 
 // Helper function to initialize Firebase Admin SDK only once.
 function getFirebaseAdminApp() {
@@ -15,6 +14,7 @@ function getFirebaseAdminApp() {
     return admin.apps[0]!;
   }
   // Initialize without arguments to use Application Default Credentials
+  // This is the correct way for this environment.
   return admin.initializeApp();
 }
 
