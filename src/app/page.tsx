@@ -22,6 +22,13 @@ import FooterAdBanner from '@/components/footer-ad-banner';
 const LOGGED_IN_USER_ID = 'patient@example.com';
 const USER_CLINIC_ID = 'clinic-wellness'; // The clinic this user is assigned to.
 
+type Ad = {
+  id: string;
+  imageUrl: string;
+  description: string;
+  targetUrl: string;
+}
+
 export default function Home() {
   const [dailyStepGoal, setDailyStepGoal] = useState(8000);
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: null, activeMinutes: null });
@@ -33,6 +40,9 @@ export default function Home() {
   // States for controlling ad visibility
   const [showPopupAd, setShowPopupAd] = useState(false);
   const [showFooterAd, setShowFooterAd] = useState(false);
+  const [popupAdContent, setPopupAdContent] = useState<Ad | null>(null);
+  const [footerAdContent, setFooterAdContent] = useState<Ad | null>(null);
+
 
   const { toast } = useToast();
   const router = useRouter();
@@ -63,14 +73,28 @@ export default function Home() {
 
         // Check the clinic's ad setting from mock data
         if (clinicRecord?.adsEnabled) {
-             // Logic to decide which ad to show, could be random or based on other factors
+            const savedPopupAds = localStorage.getItem('popupAds');
+            const savedFooterAds = localStorage.getItem('footerAds');
+            const popupAds: Ad[] = savedPopupAds ? JSON.parse(savedPopupAds) : [];
+            const footerAds: Ad[] = savedFooterAds ? JSON.parse(savedFooterAds) : [];
+
+            // Logic to decide which ad to show, could be random or based on other factors
             const adDecision = Math.random();
-            if (adDecision < 0.5) {
+            if (adDecision < 0.5 && popupAds.length > 0) {
+                const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
+                setPopupAdContent(randomAd);
                 setShowPopupAd(true);
                 setShowFooterAd(false);
-            } else {
+            } else if (footerAds.length > 0) {
+                const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
+                setFooterAdContent(randomAd);
                 setShowPopupAd(false);
                 setShowFooterAd(true);
+            } else if (popupAds.length > 0) {
+                 const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
+                 setPopupAdContent(randomAd);
+                 setShowPopupAd(true);
+                 setShowFooterAd(false);
             }
         } else {
             setShowPopupAd(false);
@@ -82,18 +106,6 @@ export default function Home() {
         setAccessRevoked(true);
     }
   }, []);
-
-  const adContent = {
-      description: 'Ad for running shoes',
-      imageUrl: 'https://placehold.co/400x300.png',
-      targetUrl: '#',
-  };
-  const footerAdContent = {
-      description: 'Horizontal ad banner',
-      imageUrl: 'https://placehold.co/728x90.png',
-      targetUrl: '#',
-  };
-
 
   // Render a "logged out" or "access revoked" state if the user has been deleted.
   if (isAccessRevoked || !currentUser) {
@@ -127,9 +139,10 @@ export default function Home() {
         <ClientDashboard user={currentUser} fitData={fitData} dailyStepGoal={dailyStepGoal} onStepGoalChange={setDailyStepGoal} view="client" clinic={clinicData}/>
         <MessageInbox />
         <NotificationManager user={currentUser} currentSteps={fitData.steps} dailyStepGoal={dailyStepGoal}/>
-        <AdBanner isPopupVisible={showPopupAd} adContent={adContent} />
+        <AdBanner isPopupVisible={showPopupAd} adContent={popupAdContent} />
       </main>
       <FooterAdBanner isVisible={showFooterAd} adContent={footerAdContent} />
     </div>
   );
 }
+

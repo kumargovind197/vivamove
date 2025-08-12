@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, ShieldCheck, BadgeCheck, BadgeAlert, Paintbrush } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, ShieldCheck, BadgeCheck, BadgeAlert, Paintbrush, Megaphone, PlusCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
@@ -39,6 +39,13 @@ const mockPatientHistoricalData = {
 };
 
 type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
+
+type Ad = {
+  id: string;
+  imageUrl: string;
+  description: string;
+  targetUrl: string;
+}
 
 const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -226,7 +233,6 @@ M1269.5,163
 </svg>
 );
 
-
 export default function AdminPanel() {
   const [clinics, setClinics] = useState(Object.values(MOCK_CLINICS));
   const [newClinicName, setNewClinicName] = useState('');
@@ -249,6 +255,12 @@ export default function AdminPanel() {
   
   const [vivaMoveLogoFile, setVivaMoveLogoFile] = useState<File | null>(null);
   const [vivaMoveLogoPreview, setVivaMoveLogoPreview] = useState<string | null>(null);
+  
+  const [popupAds, setPopupAds] = useState<Ad[]>([]);
+  const [footerAds, setFooterAds] = useState<Ad[]>([]);
+  const [newPopupAd, setNewPopupAd] = useState({ imageUrl: '', description: '', targetUrl: '' });
+  const [newFooterAd, setNewFooterAd] = useState({ imageUrl: '', description: '', targetUrl: '' });
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -257,6 +269,17 @@ export default function AdminPanel() {
     if (savedLogo) {
       setVivaMoveLogoPreview(savedLogo);
     }
+    
+    // Load saved ads from local storage
+    const savedPopupAds = localStorage.getItem('popupAds');
+    if (savedPopupAds) {
+        setPopupAds(JSON.parse(savedPopupAds));
+    }
+    const savedFooterAds = localStorage.getItem('footerAds');
+    if (savedFooterAds) {
+        setFooterAds(JSON.parse(savedFooterAds));
+    }
+
   }, []);
 
   const handleVivaMoveLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -474,6 +497,57 @@ export default function AdminPanel() {
       }
   }
 
+  const handleAdImageUpload = (e: React.ChangeEvent<HTMLInputElement>, adType: 'popup' | 'footer') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        if (adType === 'popup') {
+          setNewPopupAd(prev => ({ ...prev, imageUrl: result }));
+        } else {
+          setNewFooterAd(prev => ({ ...prev, imageUrl: result }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddAd = (adType: 'popup' | 'footer') => {
+    const adData = adType === 'popup' ? newPopupAd : newFooterAd;
+    if (!adData.imageUrl || !adData.description || !adData.targetUrl) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please fill out all fields for the ad.' });
+      return;
+    }
+    const newAd = { ...adData, id: new Date().toISOString() };
+    let updatedAds;
+    if (adType === 'popup') {
+      updatedAds = [...popupAds, newAd];
+      setPopupAds(updatedAds);
+      setNewPopupAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
+    } else {
+      updatedAds = [...footerAds, newAd];
+      setFooterAds(updatedAds);
+      setNewFooterAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
+    }
+    localStorage.setItem(adType === 'popup' ? 'popupAds' : 'footerAds', JSON.stringify(updatedAds));
+    toast({ title: 'Success', description: 'New advertisement has been added.' });
+  };
+
+  const handleRemoveAd = (adId: string, adType: 'popup' | 'footer') => {
+    let updatedAds;
+    if (adType === 'popup') {
+        updatedAds = popupAds.filter(ad => ad.id !== adId);
+        setPopupAds(updatedAds);
+    } else {
+        updatedAds = footerAds.filter(ad => ad.id !== adId);
+        setFooterAds(updatedAds);
+    }
+    localStorage.setItem(adType === 'popup' ? 'popupAds' : 'footerAds', JSON.stringify(updatedAds));
+    toast({ title: 'Ad Removed', description: 'The advertisement has been removed.' });
+  };
+
+
   return (
     <>
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -487,8 +561,9 @@ export default function AdminPanel() {
          <TabsList className="grid md:grid-cols-1 w-full md:w-48 shrink-0">
             <TabsTrigger value="clinics"><Building className="mr-2" />Clinics</TabsTrigger>
             <TabsTrigger value="analysis"><PieChart className="mr-2" />Analysis</TabsTrigger>
+            <TabsTrigger value="advertising"><Megaphone className="mr-2" />Advertising</TabsTrigger>
             <TabsTrigger value="security"><ShieldCheck className="mr-2" />Security</TabsTrigger>
-            <TabsTrigger value="branding"><Paintbrush className="mr-2" />Viva log</TabsTrigger>
+            <TabsTrigger value="viva-log"><Paintbrush className="mr-2" />Viva log</TabsTrigger>
          </TabsList>
         
         <div className="flex-grow">
@@ -679,6 +754,85 @@ export default function AdminPanel() {
                     </Card>
                 </div>
             </TabsContent>
+            <TabsContent value="advertising">
+                <div className="space-y-8">
+                     {/* Pop-up Ad Management */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Pop-up Banners (Square)</CardTitle>
+                            <CardDescription>Manage the rotating pop-up ads. Recommended size: 400x300.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                               <Label>New Pop-up Ad</Label>
+                               <div className="p-4 border rounded-md space-y-4">
+                                   <Input placeholder="Description (for internal reference)" value={newPopupAd.description} onChange={(e) => setNewPopupAd(prev => ({...prev, description: e.target.value}))}/>
+                                   <Input placeholder="Target URL (e.g. https://example.com)" value={newPopupAd.targetUrl} onChange={(e) => setNewPopupAd(prev => ({...prev, targetUrl: e.target.value}))}/>
+                                   <Input type="file" accept="image/*" onChange={(e) => handleAdImageUpload(e, 'popup')} />
+                                   <Button size="sm" onClick={() => handleAddAd('popup')}><PlusCircle className="mr-2"/>Add Pop-up Ad</Button>
+                               </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Current Pop-up Ads</Label>
+                                <div className="border rounded-md p-2 space-y-2 max-h-60 overflow-y-auto">
+                                    {popupAds.length > 0 ? popupAds.map(ad => (
+                                        <div key={ad.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                            <div className="flex items-center gap-4">
+                                                <img src={ad.imageUrl} alt={ad.description} className="h-12 w-12 rounded-md object-cover"/>
+                                                <div>
+                                                    <p className="font-semibold text-sm">{ad.description}</p>
+                                                    <p className="text-xs text-muted-foreground">{ad.targetUrl}</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveAd(ad.id, 'popup')}>
+                                                <Trash2 className="text-destructive"/>
+                                            </Button>
+                                        </div>
+                                    )) : <p className="text-center text-sm text-muted-foreground p-4">No pop-up ads configured.</p>}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    
+                    {/* Footer Ad Management */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Footer Banners (Rectangle)</CardTitle>
+                            <CardDescription>Manage the rotating footer ads. Recommended size: 728x90.</CardDescription>
+                        </CardHeader>
+                         <CardContent className="space-y-6">
+                            <div className="space-y-2">
+                               <Label>New Footer Ad</Label>
+                               <div className="p-4 border rounded-md space-y-4">
+                                   <Input placeholder="Description (for internal reference)" value={newFooterAd.description} onChange={(e) => setNewFooterAd(prev => ({...prev, description: e.target.value}))}/>
+                                   <Input placeholder="Target URL (e.g. https://example.com)" value={newFooterAd.targetUrl} onChange={(e) => setNewFooterAd(prev => ({...prev, targetUrl: e.target.value}))}/>
+                                   <Input type="file" accept="image/*" onChange={(e) => handleAdImageUpload(e, 'footer')} />
+                                   <Button size="sm" onClick={() => handleAddAd('footer')}><PlusCircle className="mr-2"/>Add Footer Ad</Button>
+                               </div>
+                            </div>
+                             <div className="space-y-2">
+                                <Label>Current Footer Ads</Label>
+                                <div className="border rounded-md p-2 space-y-2 max-h-60 overflow-y-auto">
+                                    {footerAds.length > 0 ? footerAds.map(ad => (
+                                        <div key={ad.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                                            <div className="flex items-center gap-4">
+                                                <img src={ad.imageUrl} alt={ad.description} className="h-12 w-auto rounded-md object-contain"/>
+                                                <div>
+                                                    <p className="font-semibold text-sm">{ad.description}</p>
+                                                    <p className="text-xs text-muted-foreground">{ad.targetUrl}</p>
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveAd(ad.id, 'footer')}>
+                                                <Trash2 className="text-destructive"/>
+                                            </Button>
+                                        </div>
+                                    )) : <p className="text-center text-sm text-muted-foreground p-4">No footer ads configured.</p>}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </TabsContent>
              <TabsContent value="security">
                 <Card>
                     <CardHeader>
@@ -708,7 +862,7 @@ export default function AdminPanel() {
                     </CardFooter>
                 </Card>
             </TabsContent>
-            <TabsContent value="branding">
+            <TabsContent value="viva-log">
                 <Card>
                     <CardHeader>
                         <CardTitle>ViVa Move Global Logo</CardTitle>
