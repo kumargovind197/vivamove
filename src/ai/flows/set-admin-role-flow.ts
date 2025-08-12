@@ -10,6 +10,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { firebaseConfig } from '@/lib/firebase';
 
 const SetAdminRoleInputSchema = z.object({
     email: z.string().email().describe('The email address of the user to make an admin.'),
@@ -21,9 +22,11 @@ function getFirebaseAdminApp(): App {
     if (getApps().length > 0) {
         return getApp();
     }
-    // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
-    // for authentication, which is automatically set in Firebase environments.
-    return initializeApp();
+    // When running in a local or non-Firebase environment, we need to provide the projectId.
+    // This will use Application Default Credentials for authentication.
+    return initializeApp({
+        projectId: firebaseConfig.projectId,
+    });
 }
 
 const setAdminRoleFlow = ai.defineFlow(
