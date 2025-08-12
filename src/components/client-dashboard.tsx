@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Slider } from './ui/slider';
 import { MOCK_CLINICS } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
+import { getDashboardMessage } from '@/lib/motivational-messages';
 
 type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
 
@@ -72,6 +73,9 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
 
   const stepProgress = steps ? (steps / dailyStepGoal) * 100 : 0;
   const minuteProgress = activeMinutes ? (activeMinutes / DAILY_MINUTE_GOAL) * 100 : 0;
+  
+  const dashboardMessage = getDashboardMessage(steps ?? 0, dailyStepGoal);
+
 
   const getProgressColorClass = (progress: number) => {
     if (progress < 40) return "bg-amber-500";
@@ -197,7 +201,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                     <span>Daily Steps</span>
                 </CardTitle>
                 <CardDescription>
-                  You've walked {steps?.toLocaleString() ?? 0} steps today.
+                  {dashboardMessage}
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => {
@@ -210,7 +214,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
             <CardContent>
               <Progress value={stepProgress} trackClassName='bg-red-800/20' indicatorClassName={getProgressColorClass(stepProgress)} />
               <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                <span>Goal: {dailyStepGoal.toLocaleString()}</span>
+                 <span>{steps?.toLocaleString() ?? 0} / {dailyStepGoal.toLocaleString()}</span>
                 <span>{Math.round(stepProgress)}%</span>
               </div>
             </CardContent>
@@ -349,3 +353,5 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     </>
   );
 }
+
+    

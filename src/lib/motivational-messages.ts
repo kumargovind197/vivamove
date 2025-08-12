@@ -355,6 +355,39 @@ const messages: Record<TimeOfDay, Record<MilestoneId, string[]>> = {
     }
 };
 
+const dashboardMessages = {
+    goal_reached: [
+        "Goal complete. Amazing work!",
+        "You did it! Be proud.",
+        "Target hit. Congratulations!",
+        "Mission accomplished!",
+    ],
+    almost_there: [
+        "Just a little more to go!",
+        "You're so close, keep it up!",
+        "The finish line is in sight!",
+        "Don't stop now, you've got this!",
+    ],
+    halfway: [
+        "You're halfway there. Great job!",
+        "Great progress, keep going!",
+        "You're on the right track.",
+        "Keep up the momentum!",
+    ],
+    quarter_way: [
+        "A great start to your day!",
+        "Every step counts. Keep going!",
+        "You're on your way!",
+        "Good job getting started!",
+    ],
+    not_started: [
+        "Let's get moving today!",
+        "A new day, a new goal.",
+        "Your first step is your first win.",
+        "Let's start the day strong.",
+    ],
+}
+
 const getTimeOfDay = (): TimeOfDay => {
     const hour = new Date().getHours();
     if (hour < 12) return 'morning';
@@ -393,3 +426,26 @@ export const getMotivationalMessage = (currentSteps: number, dailyStepGoal: numb
 
     return { id: milestoneId, message };
 };
+
+export const getDashboardMessage = (currentSteps: number, dailyStepGoal: number): string => {
+    const progress = dailyStepGoal > 0 ? (currentSteps / dailyStepGoal) * 100 : 0;
+    let category: keyof typeof dashboardMessages;
+
+    if (progress >= 100) {
+        category = 'goal_reached';
+    } else if (progress >= 75) {
+        category = 'almost_there';
+    } else if (progress >= 50) {
+        category = 'halfway';
+    } else if (progress > 0) {
+        category = 'quarter_way';
+    } else {
+        category = 'not_started';
+    }
+    
+    const messages = dashboardMessages[category];
+    const randomIndex = Math.floor(Math.random() * messages.length);
+    return messages[randomIndex];
+}
+
+    
