@@ -7,14 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import ActivityChart from '@/components/activity-chart';
 import { User } from 'firebase/auth';
 import { Progress } from './ui/progress';
-import { Footprints, Flame, Target, Trophy } from 'lucide-react';
+import { Footprints, Flame, Target, Trophy, Sparkles } from 'lucide-react';
 import ProgressRing from './progress-ring';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Slider } from './ui/slider';
 import { MOCK_CLINICS } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
-import MotivationalCard from './motivational-card';
+import { getDashboardMessage } from '@/lib/motivational-messages';
 
 type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
 
@@ -71,9 +71,11 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   const [dashboardMessage, setDashboardMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // This ensures the random message is only generated on the client, avoiding hydration errors.
+    setDashboardMessage(getDashboardMessage(steps ?? 0, dailyStepGoal));
     // Generate mock data on client-side only to prevent hydration mismatch
     setLocalDeviceData(generateInitialLocalData());
-  }, []);
+  }, [fitData.steps, dailyStepGoal]);
 
   const { steps, activeMinutes } = fitData;
 
@@ -186,21 +188,31 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-            <div className='flex-1'>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+             {/* Welcome Section */}
+            <div className="md:col-span-2 space-y-2">
                 <h1 className="font-headline text-3xl font-bold tracking-tight">Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!</h1>
-                <p className="text-muted-foreground">Here's your activity summary.</p>
+                <p className="text-muted-foreground">Here's your activity summary for today.</p>
             </div>
-             <MotivationalCard currentSteps={steps ?? 0} dailyStepGoal={dailyStepGoal} />
-            {clinic && (
-                <Card className="flex items-center gap-4 p-4 bg-transparent border-muted shrink-0">
-                    <Image data-ai-hint="medical logo" src={clinic.logo} alt="Clinic Logo" width={64} height={64} className="rounded-md" />
+            
+            {/* Clinic and Motivation Section */}
+            <div className="space-y-4">
+                 <Card className="flex items-center gap-4 p-3 bg-card border-muted">
+                    {clinic && <Image data-ai-hint="medical logo" src={clinic.logo} alt="Clinic Logo" width={48} height={48} className="rounded-md" />}
                     <div>
                         <p className="text-sm text-muted-foreground">Enrolled with</p>
-                        <p className="font-headline font-semibold">{clinic.name}</p>
+                        <p className="font-headline font-semibold">{clinic?.name || 'Your Clinic'}</p>
                     </div>
                 </Card>
-            )}
+                <Card className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 border-0">
+                    <CardContent className="p-3 flex items-center justify-center gap-3 text-center w-full">
+                        <Sparkles className="text-white/80 h-5 w-5 shrink-0" />
+                        <p className="text-sm font-medium text-white">
+                           {dashboardMessage || "Let's make today count!"}
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-6">

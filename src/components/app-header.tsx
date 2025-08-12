@@ -29,6 +29,34 @@ type AppHeaderProps = {
 
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
 
+  const renderClientBranding = () => {
+    if (clinic) {
+      return (
+        <div className="flex items-center gap-4">
+          <Image
+            data-ai-hint="medical logo"
+            src={clinic.logo.replace('128x128', '400x128')} // Assume we can request a wider version
+            alt={`${clinic.name} Logo`}
+            width={140}
+            height={40}
+            className="rounded-md object-contain"
+            priority
+          />
+          <span className="hidden sm:block font-headline text-xl font-bold text-foreground">
+            {clinic.name}
+          </span>
+        </div>
+      );
+    }
+    // Default icon for non-enrolled users
+    return (
+      <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted">
+        <ShieldQuestion className="h-6 w-6 text-muted-foreground" />
+      </div>
+    );
+  };
+
+
   const renderClinicBranding = () => {
     if (clinic) {
         return (
@@ -56,7 +84,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
         <div className="container flex h-16 items-center justify-between px-4 md:px-6">
           
           <div className="flex items-center">
-            {view === 'client' && renderClinicBranding()}
+            {view === 'client' && renderClientBranding()}
             {(view === 'clinic' && !patientId && clinic) && (
                 <Image
                     data-ai-hint="medical logo"

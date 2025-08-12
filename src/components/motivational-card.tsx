@@ -18,13 +18,17 @@ export default function MotivationalCard({ currentSteps, dailyStepGoal }: Motiva
         // This ensures the random message is only generated on the client, avoiding hydration errors.
         setMessage(getDashboardMessage(currentSteps, dailyStepGoal));
     }, [currentSteps, dailyStepGoal]);
+    
+    if (!message) {
+        return null; // Don't render until the message is ready on the client
+    }
 
     return (
-        <Card className="flex-grow mx-8 hidden md:flex bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 border-0">
+        <Card className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 border-0">
             <CardContent className="p-4 flex items-center justify-center gap-4 text-center w-full">
                 <Sparkles className="text-white/80 h-5 w-5 shrink-0" />
                 <p className="text-sm font-medium text-white">
-                    {message || "Let's make today count!"}
+                    {message}
                 </p>
             </CardContent>
         </Card>
