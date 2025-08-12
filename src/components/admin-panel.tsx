@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MOCK_USERS, addClinicUser, MOCK_CLINICS } from '@/lib/mock-data';
 import { Switch } from './ui/switch';
+import { Textarea } from './ui/textarea';
 
 const mockPatientHistoricalData = {
     'clinic-wellness': [
@@ -261,6 +262,11 @@ export default function AdminPanel() {
   const [newPopupAd, setNewPopupAd] = useState({ imageUrl: '', description: '', targetUrl: '' });
   const [newFooterAd, setNewFooterAd] = useState({ imageUrl: '', description: '', targetUrl: '' });
 
+  const [adToEdit, setAdToEdit] = useState<Ad | null>(null);
+  const [isEditAdDialogOpen, setEditAdDialogOpen] = useState(false);
+  const [editAdData, setEditAdData] = useState<{description: string, targetUrl: string, imageUrl: string}>({description: '', targetUrl: '', imageUrl: ''});
+  const [editAdFileType, setEditAdFileType] = useState<'popup' | 'footer' | null>(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -497,7 +503,7 @@ export default function AdminPanel() {
       }
   }
 
-  const handleAdImageUpload = (e: React.ChangeEvent<HTMLInputElement>, adType: 'popup' | 'footer') => {
+  const handleAdImageUpload = (e: React.ChangeEvent<HTMLInputElement>, adType: 'popup' | 'footer' | 'edit') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -505,8 +511,10 @@ export default function AdminPanel() {
         const result = reader.result as string;
         if (adType === 'popup') {
           setNewPopupAd(prev => ({ ...prev, imageUrl: result }));
-        } else {
+        } else if (adType === 'footer') {
           setNewFooterAd(prev => ({ ...prev, imageUrl: result }));
+        } else if (adType === 'edit') {
+            setEditAdData(prev => ({...prev, imageUrl: result}));
         }
       };
       reader.readAsDataURL(file);
@@ -545,6 +553,39 @@ export default function AdminPanel() {
     }
     localStorage.setItem(adType === 'popup' ? 'popupAds' : 'footerAds', JSON.stringify(updatedAds));
     toast({ title: 'Ad Removed', description: 'The advertisement has been removed.' });
+  };
+
+  const openEditAdDialog = (ad: Ad, adType: 'popup' | 'footer') => {
+    setAdToEdit(ad);
+    setEditAdData({ description: ad.description, targetUrl: ad.targetUrl, imageUrl: ad.imageUrl });
+    setEditAdFileType(adType);
+    setEditAdDialogOpen(true);
+  }
+
+  const handleUpdateAd = () => {
+    if (!adToEdit || !editAdFileType) return;
+
+    const updatedAd = { ...adToEdit, ...editAdData };
+    let currentAds: Ad[];
+    let setAds: React.Dispatch<React.SetStateAction<Ad[]>>;
+    let storageKey: 'popupAds' | 'footerAds';
+
+    if (editAdFileType === 'popup') {
+        currentAds = popupAds;
+        setAds = setPopupAds;
+        storageKey = 'popupAds';
+    } else {
+        currentAds = footerAds;
+        setAds = setFooterAds;
+        storageKey = 'footerAds';
+    }
+
+    const updatedAds = currentAds.map(ad => ad.id === adToEdit.id ? updatedAd : ad);
+    setAds(updatedAds);
+    localStorage.setItem(storageKey, JSON.stringify(updatedAds));
+    toast({ title: 'Ad Updated', description: 'The advertisement has been successfully modified.' });
+    setEditAdDialogOpen(false);
+    setAdToEdit(null);
   };
 
 
@@ -784,9 +825,14 @@ export default function AdminPanel() {
                                                     <p className="text-xs text-muted-foreground">{ad.targetUrl}</p>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveAd(ad.id, 'popup')}>
-                                                <Trash2 className="text-destructive"/>
-                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => openEditAdDialog(ad, 'popup')}>
+                                                    <Edit className="text-muted-foreground"/>
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleRemoveAd(ad.id, 'popup')}>
+                                                    <Trash2 className="text-destructive"/>
+                                                </Button>
+                                            </div>
                                         </div>
                                     )) : <p className="text-center text-sm text-muted-foreground p-4">No pop-up ads configured.</p>}
                                 </div>
@@ -822,9 +868,14 @@ export default function AdminPanel() {
                                                     <p className="text-xs text-muted-foreground">{ad.targetUrl}</p>
                                                 </div>
                                             </div>
-                                            <Button variant="ghost" size="icon" onClick={() => handleRemoveAd(ad.id, 'footer')}>
-                                                <Trash2 className="text-destructive"/>
-                                            </Button>
+                                            <div className="flex gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => openEditAdDialog(ad, 'footer')}>
+                                                    <Edit className="text-muted-foreground"/>
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleRemoveAd(ad.id, 'footer')}>
+                                                    <Trash2 className="text-destructive"/>
+                                                </Button>
+                                            </div>
                                         </div>
                                     )) : <p className="text-center text-sm text-muted-foreground p-4">No footer ads configured.</p>}
                                 </div>
@@ -970,7 +1021,37 @@ export default function AdminPanel() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+    
+    {/* Edit Ad Dialog */}
+    <Dialog open={isEditAdDialogOpen} onOpenChange={setEditAdDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Edit Advertisement</DialogTitle>
+                <DialogDescription>Modify the details for this ad.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-6 py-4">
+                 <div className="space-y-2">
+                    <Label htmlFor="edit-ad-desc">Description</Label>
+                    <Input id="edit-ad-desc" value={editAdData.description} onChange={(e) => setEditAdData(prev => ({...prev, description: e.target.value}))}/>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="edit-ad-url">Target URL</Label>
+                    <Input id="edit-ad-url" value={editAdData.targetUrl} onChange={(e) => setEditAdData(prev => ({...prev, targetUrl: e.target.value}))}/>
+                </div>
+                <div className="space-y-2">
+                    <Label>Ad Image</Label>
+                    <div className="flex items-center gap-4">
+                        <img src={editAdData.imageUrl} alt="Current ad" className="h-24 w-auto object-contain rounded-md bg-muted"/>
+                        <Input type="file" accept="image/*" onChange={(e) => handleAdImageUpload(e, 'edit')} />
+                    </div>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setEditAdDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleUpdateAd}>Save Changes</Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </>
   );
 }
-
