@@ -27,8 +27,19 @@ export default function LoginForm() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       
-      // Still using mock data for role-based redirect until Firestore is implemented
       const lowerCaseEmail = email.toLowerCase();
+
+      // Explicitly check for the hardcoded admin user for redirection.
+      if (lowerCaseEmail === 'vinitkiranshah@gmail.com') {
+          toast({
+            title: "Admin Login Successful",
+            description: `Redirecting to Admin Panel...`,
+          });
+          router.push('/admin');
+          return;
+      }
+
+      // Fallback to mock data for other role-based redirects
       const userKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseEmail);
       const userRoleData = userKey ? MOCK_USERS[userKey as keyof typeof MOCK_USERS] : undefined;
       const redirectPath = userRoleData?.redirect || '/';
