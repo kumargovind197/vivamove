@@ -14,7 +14,7 @@ type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
 const VivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="100%" viewBox="0 0 2000 385" enableBackground="new 0 0 2000 385" xmlSpace="preserve" {...props}>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M1663,165 
 	C1663,188.5 1662.95,212 1663.04,235.5 
@@ -26,7 +26,7 @@ M1663,165
 	C1611.37,200.33 1610.8,213.67 1610.98,227 
 	C1611.09,234.67 1611,242.33 1611,250 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M1427,165 
 	C1427,185.5 1427.17,206 1426.95,226.5 
@@ -34,7 +34,7 @@ M1427,165
 	C1383.48,250.49 1375.71,241.3 1374.98,226.5 
 	C1373.96,206.17 1374.79,185.83 1374.5,165.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M495.5,162.75 
 	C498.44,163.79 499.37,166.28 500,169 
@@ -44,7 +44,7 @@ M495.5,162.75
 	C546.31,215.49 552.2,191.51 557.92,167.48 
 	C558.28,165.99 558.58,164.87 560,164.25 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M594.5,164.75 
 	C597.51,170.83 598.25,177.58 599.89,184.03 
@@ -55,7 +55,7 @@ M594.5,164.75
 	C642.84,214.71 648.32,190.83 654.09,167.02 
 	C654.25,166.34 654.16,164.94 655.5,164.75 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M1728,177.5 
 	C1727.43,172.82 1725.71,169.23 1721.05,166.89 
@@ -68,7 +68,7 @@ M1728,177.5
 	C1700.85,253.2 1694.66,250.97 1688.52,248.95 
 	C1683.07,247.16 1680.96,242.33 1679,237.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M962,250.75 
 	C961.45,250.21 960.68,250.15 960.43,249.02 
@@ -83,7 +83,7 @@ M962,250.75
 	C903.79,238.03 902.14,243.46 901.1,249.02 
 	C900.7,251.14 898.83,250.65 898,251.75 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M725.5,252.25 
 	C723.88,251.31 722.12,250.44 721.52,248.5 
@@ -96,7 +96,7 @@ M725.5,252.25
 	C669.93,222.53 664.66,234.06 663,246.5 
 	C662.62,249.27 660.97,251.09 658.5,252.25 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M1225,177.5 
 	C1222.96,173.38 1222.18,168.39 1217.01,166.48 
@@ -110,26 +110,26 @@ M1225,177.5
 	C1198.15,252.73 1193.58,251.61 1189.01,250.45 
 	C1182.23,248.72 1177.89,244.28 1176,237.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M1327,165 
 	C1327,190.83 1327.06,216.67 1326.96,242.5 
 	C1326.94,248.77 1327.34,250.47 1335,250.49 
 	C1343.5,250.52 1352,250.5 1360.5,250.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M979,165 
 	C979,190.83 979.06,216.67 978.96,242.5 
 	C978.94,248.77 979.34,250.47 987,250.49 
 	C995.5,250.52 1004,250.5 1012.5,250.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1502,165 C1502,193.33 1502,221.67 1502,250"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M577,165 C577,193.33 577,221.67 577,250"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1035,167 C1035,194.67 1035,222.33 1035,250"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1465,167 C1465,194.67 1465,222.33 1465,250"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="7" d="M414.75,190.5 C417.19,194.95 419.08,199.63 420.5,204.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1502,165 C1502,193.33 1502,221.67 1502,250"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M577,165 C577,193.33 577,221.67 577,250"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1035,167 C1035,194.67 1035,222.33 1035,250"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1465,167 C1465,194.67 1465,222.33 1465,250"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="7" d="M414.75,190.5 C417.19,194.95 419.08,199.63 420.5,204.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M887.5,164.5 
 	C877.5,164.5 867.5,164.44 857.5,164.52 
@@ -140,9 +140,9 @@ M887.5,164.5
 	C849.88,249.46 851.25,250.32 857,250.44 
 	C867.16,250.65 877.33,250.5 887.5,250.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M773.5,207.5 C790.5,207.5 807.5,207.5 824.5,207.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M1126,207.5 C1109,207.5 1092,207.5 1075,207.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M773.5,207.5 C790.5,207.5 807.5,207.5 824.5,207.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M1126,207.5 C1109,207.5 1092,207.5 1075,207.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M771,165 
 	C771,175.5 770.98,186 771.01,196.5 
@@ -151,29 +151,29 @@ M771,165
 	C769.37,218.19 771.64,228.67 771.03,239 
 	C770.82,242.66 771,246.33 771,250 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1073,165 C1073.85,179.15 1071.23,193.43 1074.5,207.5 C1071.23,221.57 1073.85,235.85 1073,250"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1128,165 C1127.15,179.15 1129.77,193.43 1126.5,207.5 C1129.77,221.57 1127.15,235.85 1128,250"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="14" d="M826.5,165.5 C825.68,179.49 828.25,193.6 825,207.5 C828.25,221.4 825.68,235.51 826.5,249.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M672,218.5 C676.92,220.1 681.99,219.55 687,219.45 C695.5,219.27 704.06,220.39 712.5,218.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M910.5,218.5 C924,220.07 937.5,220.17 951,218.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="8" d="M294.5,240 C285.5,239.92 276.5,239.83 267.5,239.75"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="11" d="M883.5,204.5 C873.78,203.88 864.34,205.61 855.03,208.1 C853.97,208.39 852.99,208.25 852,208.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="11" d="M450,239.5 C441,239.5 432,239.5 423,239.5"/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1073,165 C1073.85,179.15 1071.23,193.43 1074.5,207.5 C1071.23,221.57 1073.85,235.85 1073,250"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13" d="M1128,165 C1127.15,179.15 1129.77,193.43 1126.5,207.5 C1129.77,221.57 1127.15,235.85 1128,250"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="14" d="M826.5,165.5 C825.68,179.49 828.25,193.6 825,207.5 C828.25,221.4 825.68,235.51 826.5,249.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M672,218.5 C676.92,220.1 681.99,219.55 687,219.45 C695.5,219.27 704.06,220.39 712.5,218.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12" d="M910.5,218.5 C924,220.07 937.5,220.17 951,218.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="8" d="M294.5,240 C285.5,239.92 276.5,239.83 267.5,239.75"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="11" d="M883.5,204.5 C873.78,203.88 864.34,205.61 855.03,208.1 C853.97,208.39 852.99,208.25 852,208.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="11" d="M450,239.5 C441,239.5 432,239.5 423,239.5"/>
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M1486.5,164.5 
 	C1479.5,165.03 1472.44,163.49 1465.44,165.84 
 	C1462.9,166.69 1460.05,164.23 1457,164.42 
 	C1452.18,164.72 1447.33,164.5 1442.5,164.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="12"
 	d="
 M1057.5,164.5 
 	C1050.17,165.03 1042.79,163.59 1035.44,165.81 
 	C1032.61,166.66 1029.36,164.18 1025.99,164.43 
 	C1021.85,164.73 1017.67,164.5 1013.5,164.5 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M1553.5,163 
 	C1534.94,166.49 1525.29,177.56 1522.84,196.48 
@@ -183,7 +183,7 @@ M1553.5,163
 	C1592.29,214.19 1592.15,200.85 1588.51,187.5 
 	C1584.95,174.41 1572.66,161.8 1554,163 
 "/>
-<path fill="none" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
+<path fill="hsl(var(--primary))" stroke="hsl(var(--primary))" strokeLinecap="round" strokeLinejoin="round" strokeWidth="13"
 	d="
 M1269.5,163 
 	C1248.55,165.59 1240.3,182.11 1238.99,198 
@@ -207,11 +207,16 @@ type AppHeaderProps = {
 
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
+  const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
+    // This function will run on the client side after the component mounts
     const savedLogo = localStorage.getItem('vivaMoveLogo');
     if (savedLogo) {
       setVivaMoveLogo(savedLogo);
+    } else {
+      // If no saved logo, set the default SVG component
+      setDefaultVivaMoveLogo(<VivaMoveLogo className="h-8 w-auto" />);
     }
   }, []);
 
@@ -220,15 +225,16 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
     if (clinic) {
       return (
         <div className="flex items-center gap-4">
-          <Image
-            data-ai-hint="medical logo"
-            src={clinic.logo.replace('128x128', '600x128')} // Assume we can request a wider version
-            alt={`${clinic.name} Logo`}
-            width={320}
-            height={40}
-            className="rounded-md object-contain"
-            priority
-          />
+          <div className="w-48 h-12 overflow-hidden rounded-md flex-shrink-0 relative">
+             <Image
+                data-ai-hint="medical logo"
+                src={clinic.logo}
+                alt={`${clinic.name} Logo`}
+                fill
+                className="object-cover"
+                priority
+              />
+          </div>
           <span className="hidden sm:block font-headline text-xl font-bold text-foreground">
             {clinic.name}
           </span>
@@ -307,7 +313,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                  {vivaMoveLogo ? (
                     <img src={vivaMoveLogo} alt="ViVa Move Logo" className="h-8 w-auto" />
                 ) : (
-                    <VivaMoveLogo className="h-8 w-auto" />
+                    defaultVivaMoveLogo
                 )}
                 <div>
                     <span className="block text-sm font-semibold text-primary/80">ViVa move</span>
@@ -345,3 +351,5 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
     </>
   );
 }
+
+    
