@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Card, CardContent } from "./ui/card";
 import { X } from 'lucide-react';
 import Link from 'next/link';
+import { ensureAbsoluteUrl } from '@/lib/url-helper';
 
 interface AdContent {
   description: string;
@@ -44,7 +45,7 @@ export default function AdBanner({ isPopupVisible, adContent }: AdBannerProps) {
             <X className="h-4 w-4" />
           </button>
         <CardContent className="p-0">
-          <Link href={adContent.targetUrl} passHref legacyBehavior>
+          <Link href={ensureAbsoluteUrl(adContent.targetUrl)} passHref legacyBehavior>
              <a target="_blank" rel="noopener noreferrer" aria-label={adContent.description}>
                 <Image 
                     data-ai-hint="running shoes"
