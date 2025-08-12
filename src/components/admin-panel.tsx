@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { MOCK_USERS, addClinicUser, MOCK_CLINICS } from '@/lib/mock-data';
 import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
+import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
 
 const mockPatientHistoricalData = {
     'clinic-wellness': [
@@ -489,11 +490,13 @@ export default function AdminPanel() {
       }
       setIsSubmitting(true);
       try {
-          console.log(`Simulating call to setAdminRole for email: ${adminEmail}`);
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          toast({ title: 'Success', description: `Admin role successfully set for ${adminEmail}. They will have admin access on their next login.` });
-          setAdminEmail('');
+          const result = await setAdminRole({ email: adminEmail });
+          if (result.success) {
+            toast({ title: 'Success', description: `Admin role successfully set for ${adminEmail}. They will have admin access on their next login.` });
+            setAdminEmail('');
+          } else {
+             throw new Error(result.message);
+          }
 
       } catch (error: any) {
           console.error(error);
@@ -903,7 +906,7 @@ export default function AdminPanel() {
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            This will call the `setAdminRole` Cloud Function. Ensure it is deployed and the user exists before running this.
+                            This action is irreversible through the app. Please be certain before granting admin rights.
                         </p>
                     </CardContent>
                     <CardFooter>
