@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, ShieldCheck, BadgeCheck, BadgeAlert, Paintbrush, Megaphone, PlusCircle } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { MOCK_USERS, addClinicUser, MOCK_CLINICS } from '@/lib/mock-data';
 import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
-import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
+import { BadgeCheck, BadgeAlert } from 'lucide-react';
 
 const mockPatientHistoricalData = {
     'clinic-wellness': [
@@ -252,8 +252,6 @@ export default function AdminPanel() {
   const [editedAdsEnabled, setEditedAdsEnabled] = useState(false);
 
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [vivaMoveLogoFile, setVivaMoveLogoFile] = useState<File | null>(null);
   const [vivaMoveLogoPreview, setVivaMoveLogoPreview] = useState<string | null>(null);
@@ -483,29 +481,6 @@ export default function AdminPanel() {
     });
   };
 
-  const handleSetAdmin = async () => {
-      if (!adminEmail) {
-          toast({ variant: 'destructive', title: 'Email required', description: 'Please enter the email of the user to make an admin.' });
-          return;
-      }
-      setIsSubmitting(true);
-      try {
-          const result = await setAdminRole({ email: adminEmail });
-          if (result.success) {
-            toast({ title: 'Success', description: `Admin role successfully set for ${adminEmail}. They will have admin access on their next login.` });
-            setAdminEmail('');
-          } else {
-             throw new Error(result.message);
-          }
-
-      } catch (error: any) {
-          console.error(error);
-          toast({ variant: 'destructive', title: 'Error', description: error.message || 'An unknown error occurred.' });
-      } finally {
-          setIsSubmitting(false);
-      }
-  }
-
   const handleAdImageUpload = (e: React.ChangeEvent<HTMLInputElement>, adType: 'popup' | 'footer' | 'edit') => {
     const file = e.target.files?.[0];
     if (file) {
@@ -606,7 +581,6 @@ export default function AdminPanel() {
             <TabsTrigger value="clinics"><Building className="mr-2" />Clinics</TabsTrigger>
             <TabsTrigger value="analysis"><PieChart className="mr-2" />Analysis</TabsTrigger>
             <TabsTrigger value="advertising"><Megaphone className="mr-2" />Advertising</TabsTrigger>
-            <TabsTrigger value="security"><ShieldCheck className="mr-2" />Security</TabsTrigger>
             <TabsTrigger value="viva-log"><Paintbrush className="mr-2" />Viva log</TabsTrigger>
          </TabsList>
         
@@ -886,35 +860,6 @@ export default function AdminPanel() {
                         </CardContent>
                     </Card>
                 </div>
-            </TabsContent>
-             <TabsContent value="security">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Set Admin Role</CardTitle>
-                        <CardDescription>Grant a user administrative privileges. The user must already have an account created in Firebase Authentication.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                             <Label htmlFor="admin-email">User Email</Label>
-                             <Input 
-                                id="admin-email" 
-                                type="email" 
-                                placeholder="user@example.com"
-                                value={adminEmail}
-                                onChange={(e) => setAdminEmail(e.target.value)}
-                                disabled={isSubmitting}
-                            />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            This action is irreversible through the app. Please be certain before granting admin rights.
-                        </p>
-                    </CardContent>
-                    <CardFooter>
-                        <Button onClick={handleSetAdmin} disabled={isSubmitting}>
-                            {isSubmitting ? 'Submitting...' : 'Make Admin'}
-                        </Button>
-                    </CardFooter>
-                </Card>
             </TabsContent>
             <TabsContent value="viva-log">
                 <Card>
