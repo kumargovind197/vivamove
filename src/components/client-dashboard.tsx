@@ -71,10 +71,13 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   const [dashboardMessage, setDashboardMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // This ensures the random message is only generated on the client, avoiding hydration errors.
-    setDashboardMessage(getDashboardMessage(steps ?? 0, dailyStepGoal));
     // Generate mock data on client-side only to prevent hydration mismatch
     setLocalDeviceData(generateInitialLocalData());
+  }, []);
+
+  useEffect(() => {
+    // This ensures the random message is only generated on the client, avoiding hydration errors.
+    setDashboardMessage(getDashboardMessage(fitData.steps ?? 0, dailyStepGoal));
   }, [fitData.steps, dailyStepGoal]);
 
   const { steps, activeMinutes } = fitData;
@@ -188,29 +191,33 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-             {/* Welcome Section */}
-            <div className="md:col-span-2 space-y-2">
-                <h1 className="font-headline text-3xl font-bold tracking-tight">Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!</h1>
-                <p className="text-muted-foreground">Here's your activity summary for today.</p>
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-center">
+            {/* Welcome Section */}
+            <div className="space-y-1">
+                <h1 className="font-headline text-2xl font-bold tracking-tight">Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!</h1>
+                <p className="text-muted-foreground text-sm">Here's your activity summary.</p>
             </div>
-            
-            {/* Clinic and Motivation Section */}
-            <div className="space-y-4">
-                 <Card className="flex items-center gap-4 p-3 bg-card border-muted">
-                    {clinic && <Image data-ai-hint="medical logo" src={clinic.logo} alt="Clinic Logo" width={48} height={48} className="rounded-md" />}
-                    <div>
-                        <p className="text-sm text-muted-foreground">Enrolled with</p>
-                        <p className="font-headline font-semibold">{clinic?.name || 'Your Clinic'}</p>
-                    </div>
-                </Card>
-                <Card className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 border-0">
+
+            {/* Motivation Section */}
+            <div className="flex justify-center">
+                 <Card className="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 border-0 max-w-sm">
                     <CardContent className="p-3 flex items-center justify-center gap-3 text-center w-full">
                         <Sparkles className="text-white/80 h-5 w-5 shrink-0" />
                         <p className="text-sm font-medium text-white">
                            {dashboardMessage || "Let's make today count!"}
                         </p>
                     </CardContent>
+                </Card>
+            </div>
+            
+            {/* Clinic Section */}
+            <div className="flex justify-end">
+                 <Card className="flex items-center gap-4 p-3 bg-card border-muted">
+                    {clinic && <Image data-ai-hint="medical logo" src={clinic.logo} alt="Clinic Logo" width={48} height={48} className="rounded-md" />}
+                    <div>
+                        <p className="text-sm text-muted-foreground">Enrolled with</p>
+                        <p className="font-headline font-semibold">{clinic?.name || 'Your Clinic'}</p>
+                    </div>
                 </Card>
             </div>
         </div>
@@ -224,7 +231,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                     <span>Daily Steps</span>
                 </CardTitle>
                 <CardDescription>
-                  Your goal is to reach {dailyStepGoal.toLocaleString()} steps today.
+                  Your goal is {dailyStepGoal.toLocaleString()} steps today.
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => {
