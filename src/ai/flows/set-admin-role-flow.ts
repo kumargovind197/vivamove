@@ -8,7 +8,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApps, getApp } from 'firebase-admin/app';
+import { initializeApp, getApps, App, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 const SetAdminRoleInputSchema = z.object({
@@ -16,10 +16,16 @@ const SetAdminRoleInputSchema = z.object({
 });
 export type SetAdminRoleInput = z.infer<typeof SetAdminRoleInputSchema>;
 
-// Initialize Firebase Admin SDK if it hasn't been already.
-if (getApps().length === 0) {
-  initializeApp();
+
+function getFirebaseAdminApp(): App {
+    if (getApps().length > 0) {
+        return getApp();
+    }
+    // In this environment, initializeApp() without arguments will use the
+    // Application Default Credentials, which is what we want.
+    return initializeApp();
 }
+
 
 const setAdminRoleFlow = ai.defineFlow(
     {
@@ -29,7 +35,8 @@ const setAdminRoleFlow = ai.defineFlow(
     },
     async (input) => {
         try {
-            const auth = getAuth();
+            const app = getFirebaseAdminApp();
+            const auth = getAuth(app);
 
             const user = await auth.getUserByEmail(input.email);
             if (!user) {
