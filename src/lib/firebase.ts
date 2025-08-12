@@ -3,12 +3,18 @@ import { initializeApp, getApps, getApp } from "firebase/app";
 import { 
     getAuth, 
     GoogleAuthProvider, 
+    signInWithEmailAndPassword
 } from "firebase/auth";
 import type { User } from 'firebase/auth';
 
 const firebaseConfig = {
-  // Your Firebase config object goes here.
-  // This will be populated automatically when you connect to a Firebase project.
+  "projectId": "viva-move",
+  "appId": "1:997059442824:web:d60cc73cfc7a0a54fc873d",
+  "storageBucket": "viva-move.firebasestorage.app",
+  "apiKey": "AIzaSyCnh0gRKh4eoINH2Aw9B5YeMMqq5wWpEu4",
+  "authDomain": "viva-move.firebaseapp.com",
+  "measurementId": "",
+  "messagingSenderId": "997059442824"
 };
 
 // Initialize Firebase
@@ -16,10 +22,9 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-provider.addScope('https://www.googleapis.com/auth/fitness.activity.read');
-
 export { 
     auth, 
-    provider
+    provider,
+    signInWithEmailAndPassword
 };
 export type { User };

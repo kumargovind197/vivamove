@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { MOCK_USERS } from '@/lib/mock-data';
+import { auth, signInWithEmailAndPassword } from '@/lib/firebase';
+import { MOCK_USERS } from '@/lib/mock-data'; // Keep for role-based redirect for now
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -19,32 +20,35 @@ export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      const lowerCaseEmail = email.toLowerCase();
-      // Find the user key case-insensitively
-      const userKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseEmail);
-      const user = userKey ? MOCK_USERS[userKey as keyof typeof MOCK_USERS] : undefined;
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
       
-      if (user && user.password === password) {
-        toast({
-          title: "Login Successful",
-          description: `Redirecting to ${user.role} dashboard...`,
-        });
-        router.push(user.redirect);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Invalid email or password. Please try again.",
-        });
+      // Still using mock data for role-based redirect until Firestore is implemented
+      const lowerCaseEmail = email.toLowerCase();
+      const userKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseEmail);
+      const userRoleData = userKey ? MOCK_USERS[userKey as keyof typeof MOCK_USERS] : undefined;
+      const redirectPath = userRoleData?.redirect || '/';
+
+      toast({
+        title: "Login Successful",
+        description: `Redirecting...`,
+      });
+      router.push(redirectPath);
+
+    } catch (error: any) {
+      console.error("Firebase Auth Error:", error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: "Invalid email or password. Please try again.",
+      });
+    } finally {
         setIsLoading(false);
-      }
-    }, 1000);
+    }
   };
 
   const handlePasswordRecovery = () => {
