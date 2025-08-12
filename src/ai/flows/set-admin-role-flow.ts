@@ -8,25 +8,17 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { firebaseConfig } from '@/lib/firebase';
 
 const SetAdminRoleInputSchema = z.object({
     email: z.string().email().describe('The email address of the user to make an admin.'),
 });
 export type SetAdminRoleInput = z.infer<typeof SetAdminRoleInputSchema>;
 
-// Initialize Firebase Admin SDK
-function getFirebaseAdminApp(): App {
-    if (getApps().length > 0) {
-        return getApp();
-    }
-    // When running in a local or non-Firebase environment, we need to provide the projectId.
-    // This will use Application Default Credentials for authentication.
-    return initializeApp({
-        projectId: firebaseConfig.projectId,
-    });
+// Initialize Firebase Admin SDK if it hasn't been already.
+if (getApps().length === 0) {
+  initializeApp();
 }
 
 const setAdminRoleFlow = ai.defineFlow(
@@ -37,8 +29,7 @@ const setAdminRoleFlow = ai.defineFlow(
     },
     async (input) => {
         try {
-            const app = getFirebaseAdminApp();
-            const auth = getAuth(app);
+            const auth = getAuth();
 
             const user = await auth.getUserByEmail(input.email);
             if (!user) {
