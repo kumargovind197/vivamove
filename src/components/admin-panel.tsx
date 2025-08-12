@@ -46,7 +46,7 @@ export default function AdminPanel() {
   const [newClinicId, setNewClinicId] = useState('');
   const [newClinicPassword, setNewClinicPassword] = useState('');
   const [newPatientCapacity, setNewPatientCapacity] = useState(100);
-  const [newAdsEnabled, setNewAdsEnabled] = useState(true);
+  const [newAdsEnabled, setNewAdsEnabled] = useState(false);
   const [newLogoFile, setNewLogoFile] = useState<File | null>(null);
   const [newLogoPreview, setNewLogoPreview] = useState<string | null>(null);
   
@@ -123,7 +123,7 @@ export default function AdminPanel() {
     setNewClinicId('');
     setNewClinicPassword('');
     setNewPatientCapacity(100);
-    setNewAdsEnabled(true);
+    setNewAdsEnabled(false);
     setNewLogoFile(null);
     setNewLogoPreview(null);
   };
@@ -554,5 +554,7 @@ export default function AdminPanel() {
     </>
   );
 }
+
+    
 
     
