@@ -208,6 +208,7 @@ type AppHeaderProps = {
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     // This function will run on the client side after the component mounts
@@ -219,6 +220,18 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
       setDefaultVivaMoveLogo(<VivaMoveLogo className="h-8 w-auto" />);
     }
   }, []);
+
+  useEffect(() => {
+      const checkAdminStatus = async () => {
+          if (user) {
+              const tokenResult = await user.getIdTokenResult();
+              setIsAdmin(!!tokenResult.claims.admin);
+          } else {
+              setIsAdmin(false);
+          }
+      };
+      checkAdminStatus();
+  }, [user]);
 
 
   const renderClientBranding = () => {
@@ -321,7 +334,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                 </div>
              </div>
 
-             {view === 'client' && (
+            {isAdmin && view === 'client' && (
                <div className="flex items-center gap-2">
                  <Button asChild variant="outline">
                     <Link href="/clinic">
@@ -351,5 +364,3 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
     </>
   );
 }
-
-    
