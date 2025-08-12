@@ -1,6 +1,6 @@
 
 "use client";
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -65,17 +65,22 @@ type ClientDashboardProps = {
 export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGoalChange, view, clinic }: ClientDashboardProps) {
   const [isGoalDialogOpen, setGoalDialogOpen] = useState(false);
   const [pendingStepGoal, setPendingStepGoal] = useState(dailyStepGoal);
+  const [dashboardMessage, setDashboardMessage] = useState<string | null>(null);
 
   // This state now simulates the data stored locally on the user's phone.
   const [localDeviceData] = useState(generateInitialLocalData);
 
   const { steps, activeMinutes } = fitData;
 
+  useEffect(() => {
+    // Generate message on client-side only to prevent hydration mismatch
+    setDashboardMessage(getDashboardMessage(steps ?? 0, dailyStepGoal));
+  }, [steps, dailyStepGoal]);
+
+
   const stepProgress = steps ? (steps / dailyStepGoal) * 100 : 0;
   const minuteProgress = activeMinutes ? (activeMinutes / DAILY_MINUTE_GOAL) * 100 : 0;
   
-  const dashboardMessage = getDashboardMessage(steps ?? 0, dailyStepGoal);
-
 
   const getProgressColorClass = (progress: number) => {
     if (progress < 40) return "bg-amber-500";
@@ -201,7 +206,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                     <span>Daily Steps</span>
                 </CardTitle>
                 <CardDescription>
-                  {dashboardMessage}
+                  {dashboardMessage || 'Here is your daily progress.'}
                 </CardDescription>
               </div>
               <Button variant="outline" size="sm" onClick={() => {
@@ -353,4 +358,3 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     </>
   );
 }
-
