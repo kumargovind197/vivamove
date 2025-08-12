@@ -7,6 +7,6 @@
 // Firebase Authentication list.
 
 export const PRIMARY_ADMINS = [
-  "admin@example.com",
+  "vinitkiranshah@gmail.com",
   // "another-admin@example.com",
 ];
