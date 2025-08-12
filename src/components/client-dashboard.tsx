@@ -68,15 +68,15 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   const [dashboardMessage, setDashboardMessage] = useState<string | null>(null);
 
   // This state now simulates the data stored locally on the user's phone.
-  const [localDeviceData] = useState(generateInitialLocalData);
-
-  const { steps, activeMinutes } = fitData;
+  const [localDeviceData, setLocalDeviceData] = useState<any[]>([]);
 
   useEffect(() => {
-    // Generate message on client-side only to prevent hydration mismatch
-    setDashboardMessage(getDashboardMessage(steps ?? 0, dailyStepGoal));
-  }, [steps, dailyStepGoal]);
+    // Generate mock data and message on client-side only to prevent hydration mismatch
+    setLocalDeviceData(generateInitialLocalData());
+    setDashboardMessage(getDashboardMessage(fitData.steps ?? 0, dailyStepGoal));
+  }, [fitData.steps, dailyStepGoal]);
 
+  const { steps, activeMinutes } = fitData;
 
   const stepProgress = steps ? (steps / dailyStepGoal) * 100 : 0;
   const minuteProgress = activeMinutes ? (activeMinutes / DAILY_MINUTE_GOAL) * 100 : 0;
@@ -102,6 +102,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   // --- DATA CALCULATIONS based on LOCAL DATA ---
   
   const weeklyData = useMemo(() => {
+    if (localDeviceData.length === 0) return [];
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     // Get the last 7 days from our local storage
     const last7DaysData = localDeviceData.slice(-7);
@@ -111,22 +112,27 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     }));
   }, [localDeviceData]);
   
-  const weeklyAverage = Math.round(weeklyData.reduce((acc, curr) => acc + curr.steps, 0) / weeklyData.length);
+  const weeklyAverage = useMemo(() => {
+    if (weeklyData.length === 0) return 0;
+    return Math.round(weeklyData.reduce((acc, curr) => acc + curr.steps, 0) / weeklyData.length);
+  }, [weeklyData]);
 
   const monthlyData = useMemo(() => {
+    if (localDeviceData.length === 0) return [];
     // Get the last 30 days from local storage
     return localDeviceData.slice(-30);
   }, [localDeviceData]);
 
   const monthlyTotalSteps = monthlyData.reduce((acc, curr) => acc + curr.steps, 0);
-  const monthlyAverageSteps = Math.round(monthlyTotalSteps / monthlyData.length);
+  const monthlyAverageSteps = monthlyData.length > 0 ? Math.round(monthlyTotalSteps / monthlyData.length) : 0;
   const daysStepGoalMetMonthly = monthlyData.filter(day => day.steps >= dailyStepGoal).length;
   
   const monthlyTotalMinutes = monthlyData.reduce((acc, curr) => acc + curr.activeMinutes, 0);
-  const monthlyAverageMinutes = Math.round(monthlyTotalMinutes / monthlyData.length);
+  const monthlyAverageMinutes = monthlyData.length > 0 ? Math.round(monthlyTotalMinutes / monthlyData.length) : 0;
   const daysMinuteGoalMetMonthly = monthlyData.filter(day => day.activeMinutes >= DAILY_MINUTE_GOAL).length;
 
   const averageStepsByDay = useMemo(() => {
+    if (localDeviceData.length === 0) return [];
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const dayMap: { [key: string]: { total: number, count: number } } = {};
     
@@ -147,6 +153,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   }, [localDeviceData]);
   
   const averageMinutesByDay = useMemo(() => {
+    if (localDeviceData.length === 0) return [];
      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
      const dayMap: { [key: string]: { total: number, count: number } } = {};
     
@@ -175,8 +182,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     return ""; // Default
   };
 
-  const daysMetProgress = (daysStepGoalMetMonthly / monthlyData.length) * 100;
-
+  const daysMetProgress = monthlyData.length > 0 ? (daysStepGoalMetMonthly / monthlyData.length) * 100 : 0;
 
   return (
     <>
@@ -358,3 +364,5 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     </>
   );
 }
+
+    
