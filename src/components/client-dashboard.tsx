@@ -411,5 +411,5 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
