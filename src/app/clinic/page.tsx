@@ -4,8 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import AppHeader from '@/components/app-header';
 import PatientManagement from '@/components/patient-management';
-import type { User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth.tsx';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -21,49 +20,34 @@ type ClinicData = {
 }
 
 export default function ClinicPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isClinic, setIsClinic] = useState(false);
-  const [clinicId, setClinicId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isClinic, loading: authLoading } = useAuth();
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
+  const [clinicLoading, setClinicLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-        if (firebaseUser) {
-            const tokenResult = await firebaseUser.getIdTokenResult(true);
-            const isClinicClaim = !!tokenResult.claims.clinic;
-
-            if (isClinicClaim) {
-                setUser(firebaseUser);
-                setIsClinic(true);
-                setClinicId(firebaseUser.uid);
-            } else {
-                 setIsClinic(false);
-            }
-        } else {
-            setUser(null);
-            setIsClinic(false);
-            setClinicId(null);
-        }
-        setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!user || !isClinic || !clinicId) return;
+    if (authLoading) {
+      return;
+    }
+    if (!user || !isClinic) {
+      setClinicLoading(false);
+      return;
+    }
 
     const db = getFirestore();
-    const clinicRef = doc(db, "clinics", clinicId);
+    const clinicRef = doc(db, "clinics", user.uid);
     
     getDoc(clinicRef).then(docSnap => {
         if (docSnap.exists()) {
-            setClinicData(docSnap.data() as ClinicData);
+            setClinicData({id: docSnap.id, ...docSnap.data()} as ClinicData);
         } else {
             console.error("No clinic data found for this user in Firestore!");
         }
+    }).finally(() => {
+        setClinicLoading(false);
     });
-  }, [user, isClinic, clinicId]);
+  }, [user, isClinic, authLoading]);
+  
+  const loading = authLoading || clinicLoading;
 
   if (loading) {
     return (
@@ -105,7 +89,7 @@ export default function ClinicPage() {
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader user={user} view="clinic" clinic={clinicData}/>
       <main className="flex-1">
-        <PatientManagement clinicId={clinicId} />
+        <PatientManagement clinicId={user.uid} />
       </main>
     </div>
   );

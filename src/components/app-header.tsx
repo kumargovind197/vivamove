@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth.tsx';
 import type { User } from 'firebase/auth';
 
 type Clinic = {
@@ -212,9 +212,8 @@ type AppHeaderProps = {
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isClinic, setIsClinic] = useState(false);
-
+  const { isAdmin, isClinic } = useAuth();
+  
   useEffect(() => {
     const savedLogo = localStorage.getItem('vivaMoveLogo');
     if (savedLogo) {
@@ -222,15 +221,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
     } else {
       setDefaultVivaMoveLogo(<VivaMoveLogo className="h-8 w-auto" />);
     }
-    
-    if (user) {
-        user.getIdTokenResult().then(tokenResult => {
-            setIsAdmin(!!tokenResult.claims.admin);
-            setIsClinic(!!tokenResult.claims.clinic);
-        })
-    }
-
-  }, [user]);
+  }, []);
 
   const renderClientBranding = () => {
     if (clinic && clinic.logo) {

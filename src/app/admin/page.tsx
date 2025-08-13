@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/app-header';
 import AdminPanel from '@/components/admin-panel';
@@ -9,50 +9,11 @@ import { Button } from '@/components/ui/button';
 import { ShieldOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { auth } from '@/lib/firebase';
-import type { User } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth.tsx';
 
 export default function AdminPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { user, isAdmin, loading } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (firebaseUser) {
-        // User is signed in.
-        try {
-          const tokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh
-          if (tokenResult.claims.admin) {
-            setUser(firebaseUser);
-            setIsAdmin(true);
-          } else {
-            // User is not an admin, deny access.
-            setUser(null);
-            setIsAdmin(false);
-            router.push('/'); // Redirect non-admins away
-          }
-        } catch (error) {
-          console.error("Error fetching user token:", error);
-          setIsAdmin(false);
-          setUser(null);
-          router.push('/');
-        } finally {
-            setLoading(false);
-        }
-      } else {
-        // User is signed out, redirect to login.
-        setIsAdmin(false);
-        setUser(null);
-        setLoading(false);
-        router.push('/login');
-      }
-    });
-
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, [router]);
 
   if (loading) {
     return (
@@ -71,6 +32,12 @@ export default function AdminPage() {
           </div>
       </div>
     );
+  }
+
+  if (!user) {
+    // Redirect to login if user is not logged in
+    router.push('/login');
+    return null; // Render nothing while redirecting
   }
 
   if (!isAdmin) {

@@ -8,8 +8,7 @@ import ClientDashboard from '@/components/client-dashboard';
 import MessageInbox from '@/components/message-inbox';
 import NotificationManager from '@/components/notification-manager';
 import DataCards from '@/components/data-cards';
-import { auth } from '@/lib/firebase';
-import type { User } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth.tsx';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, LogIn } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,27 +41,9 @@ export default function Home() {
   const [showFooterAd, setShowFooterAd] = useState(false);
   const [popupAdContent, setPopupAdContent] = useState<Ad | null>(null);
   const [footerAdContent, setFooterAdContent] = useState<Ad | null>(null);
-
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [clinicId, setClinicId] = useState<string | null>(null);
+  
+  const { user, clinicId, loading } = useAuth();
   const router = useRouter();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
-        if (firebaseUser) {
-            setUser(firebaseUser);
-            const tokenResult = await firebaseUser.getIdTokenResult();
-            setClinicId(tokenResult.claims.clinicId as string || null);
-        } else {
-            setUser(null);
-            setClinicId(null);
-        }
-        setLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
 
   useEffect(() => {
     if (loading || !user) {
