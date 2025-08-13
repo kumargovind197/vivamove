@@ -322,35 +322,35 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                 </div>
              </div>
             
-            {/* Conditional rendering of admin buttons based on the useAuth hook */}
-            {isAdmin && (
-              <div className="flex items-center gap-2">
-                {view !== 'client' && (
-                  <Button asChild variant="outline">
-                      <Link href="/">
-                          <UserCircle className="mr-2 h-4 w-4" />
-                          <span>Client View</span>
-                      </Link>
-                  </Button>
-                )}
-                {view !== 'clinic' && (
-                  <Button asChild variant="outline">
-                      <Link href="/clinic">
-                          <Hospital className="mr-2 h-4 w-4" />
-                          <span>Clinic View</span>
-                      </Link>
-                  </Button>
-                )}
-                {view !== 'admin' && (
-                  <Button asChild variant="outline">
-                      <Link href="/admin">
-                          <Wrench className="mr-2 h-4 w-4" />
-                          <span>Admin</span>
-                      </Link>
-                  </Button>
-                )}
-              </div>
-            )}
+            {/* --- DEVELOPER NAVIGATION BUTTONS --- */}
+            {/* Temporarily visible for all users during development */}
+            <div className="flex items-center gap-2">
+              {view !== 'client' && (
+                <Button asChild variant="outline">
+                    <Link href="/">
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Client View</span>
+                    </Link>
+                </Button>
+              )}
+              {view !== 'clinic' && (
+                <Button asChild variant="outline">
+                    <Link href="/clinic">
+                        <Hospital className="mr-2 h-4 w-4" />
+                        <span>Clinic View</span>
+                    </Link>
+                </Button>
+              )}
+              {view !== 'admin' && (
+                <Button asChild variant="outline">
+                    <Link href="/admin">
+                        <Wrench className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                    </Link>
+                </Button>
+              )}
+            </div>
+
           </div>
         </div>
       </header>

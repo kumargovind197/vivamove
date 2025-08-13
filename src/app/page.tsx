@@ -127,13 +127,7 @@ export default function Home() {
         </div>
       );
   }
-
-  // If the user is an admin, render the admin page directly.
-  // This is a temporary measure for developer review.
-  if (isAdmin) {
-    return <AdminPage />;
-  }
-
+  
   // Render a "logged out" or "access revoked" state if the user has been deleted.
   if (isAccessRevoked || !currentUser) {
       return (
