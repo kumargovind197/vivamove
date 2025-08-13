@@ -4,6 +4,7 @@
 /**
  * @fileOverview A flow for an admin to create a new clinic, which includes
  * creating a Firebase Auth user, setting a 'clinic' custom claim, and creating
+
  * a corresponding Firestore document for the clinic's data.
  */
 import { ai } from '@/ai/genkit';
@@ -81,12 +82,18 @@ const createClinicFlow = ai.defineFlow(
       const db = admin.firestore();
       const clinicRef = db.collection('clinics').doc(userRecord.uid);
       
-      const clinicData = {
+      const clinicData: z.infer<typeof ClinicDataSchema> = {
           name: input.name,
-          logo: input.logo || `https://placehold.co/200x80.png?text=${encodeURIComponent(input.name)}`, // Default placeholder
           capacity: input.capacity,
           adsEnabled: input.adsEnabled,
       };
+
+      // Only add logo if it's a non-empty string, otherwise use placeholder
+      if (input.logo && input.logo.trim() !== '') {
+        clinicData.logo = input.logo;
+      } else {
+        clinicData.logo = `https://placehold.co/200x80.png?text=${encodeURIComponent(input.name)}`;
+      }
 
       await clinicRef.set(clinicData);
 
@@ -111,5 +118,3 @@ const createClinicFlow = ai.defineFlow(
     }
   }
 );
-
-    
