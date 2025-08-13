@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle, UserCog } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
@@ -16,6 +16,7 @@ import { MOCK_USERS, addClinicUser, MOCK_CLINICS } from '@/lib/mock-data';
 import { Switch } from './ui/switch';
 import { Textarea } from './ui/textarea';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
+import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
 
 const mockPatientHistoricalData = {
     'clinic-wellness': [
@@ -265,6 +266,9 @@ export default function AdminPanel() {
   const [isEditAdDialogOpen, setEditAdDialogOpen] = useState(false);
   const [editAdData, setEditAdData] = useState<{description: string, targetUrl: string, imageUrl: string}>({description: '', targetUrl: '', imageUrl: ''});
   const [editAdFileType, setEditAdFileType] = useState<'popup' | 'footer' | null>(null);
+
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [isGrantingAdmin, setIsGrantingAdmin] = useState(false);
 
   const { toast } = useToast();
 
@@ -566,6 +570,35 @@ export default function AdminPanel() {
     setAdToEdit(null);
   };
 
+  const handleGrantAdmin = async () => {
+    if (!newAdminEmail) {
+      toast({
+        variant: 'destructive',
+        title: 'Email Required',
+        description: 'Please enter the email address of the user to make an admin.',
+      });
+      return;
+    }
+    setIsGrantingAdmin(true);
+    try {
+      const result = await setAdminRole({ email: newAdminEmail });
+      toast({
+        title: 'Success!',
+        description: result.message,
+      });
+      setNewAdminEmail('');
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Granting Admin Role',
+        description: error.message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsGrantingAdmin(false);
+    }
+  };
+
+
   return (
     <>
     <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -578,6 +611,7 @@ export default function AdminPanel() {
       <Tabs defaultValue="clinics" orientation="vertical" className="flex flex-col md:flex-row gap-8">
          <TabsList className="grid md:grid-cols-1 w-full md:w-48 shrink-0">
             <TabsTrigger value="clinics"><Building className="mr-2" />Clinics</TabsTrigger>
+            <TabsTrigger value="users"><UserCog className="mr-2" />User Management</TabsTrigger>
             <TabsTrigger value="analysis"><PieChart className="mr-2" />Analysis</TabsTrigger>
             <TabsTrigger value="advertising"><Megaphone className="mr-2" />Advertising</TabsTrigger>
             <TabsTrigger value="viva-log"><Paintbrush className="mr-2" />Viva log</TabsTrigger>
@@ -720,6 +754,35 @@ export default function AdminPanel() {
                     </Card>
                     </TabsContent>
                 </Tabs>
+            </TabsContent>
+             <TabsContent value="users">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Grant Admin Privileges</CardTitle>
+                        <CardDescription>
+                            Enter the email address of an existing user to grant them administrative rights.
+                            This user will have full access to the admin panel. This action is irreversible through the UI.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="admin-email">User's Email Address</Label>
+                            <Input
+                                id="admin-email"
+                                type="email"
+                                placeholder="user@example.com"
+                                value={newAdminEmail}
+                                onChange={(e) => setNewAdminEmail(e.target.value)}
+                                disabled={isGrantingAdmin}
+                            />
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button onClick={handleGrantAdmin} disabled={isGrantingAdmin}>
+                            {isGrantingAdmin ? 'Granting...' : 'Make Admin'}
+                        </Button>
+                    </CardFooter>
+                </Card>
             </TabsContent>
             <TabsContent value="analysis">
                  <div className="space-y-8">
@@ -1002,5 +1065,3 @@ export default function AdminPanel() {
     </>
   );
 }
-
-    
