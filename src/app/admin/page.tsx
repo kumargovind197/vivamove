@@ -8,6 +8,8 @@ import { ShieldOff, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
+import AppHeader from '@/components/app-header';
+
 
 export default function AdminPage() {
   const [user, setUser] = useState<User | null>(null);
@@ -29,12 +31,12 @@ export default function AdminPage() {
               setUser(firebaseUser);
               setIsAdmin(false);
             }
-            setLoading(false);
           })
           .catch((error) => {
             console.error("Error fetching user claims:", error);
             setUser(firebaseUser);
             setIsAdmin(false);
+          }).finally(() => {
             setLoading(false);
           });
       } else {
@@ -90,6 +92,7 @@ export default function AdminPage() {
   // At this point, user is confirmed to be an admin
   return (
     <div className="flex min-h-screen w-full flex-col">
+       <AppHeader user={user} view="admin" clinic={null} />
       <main className="flex-1">
         <AdminPanel />
       </main>
