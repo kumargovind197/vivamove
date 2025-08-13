@@ -60,9 +60,10 @@ const createClinicFlow = ai.defineFlow(
     outputSchema: CreateClinicOutputSchema,
   },
   async (input) => {
+    let userRecord;
     try {
       // Step 1: Create the user in Firebase Authentication
-      const userRecord = await admin.auth().createUser({
+      userRecord = await admin.auth().createUser({
         email: input.email,
         password: input.password,
         displayName: input.name,
@@ -76,6 +77,7 @@ const createClinicFlow = ai.defineFlow(
       const db = admin.firestore();
       const clinicRef = db.collection('clinics').doc(userRecord.uid);
       
+      // Explicitly create the object for Firestore, excluding auth details
       const { email, password, ...clinicData } = input;
       const placeholderLogo = 'https://placehold.co/200x80.png';
 
@@ -91,13 +93,16 @@ const createClinicFlow = ai.defineFlow(
       };
     } catch (error: any) {
         console.error("Error creating clinic:", error);
+        
+        // Clean up partially created user if any step fails after user creation
+        if (userRecord && userRecord.uid) {
+            await admin.auth().deleteUser(userRecord.uid).catch(e => console.error("Cleanup failed for user:", userRecord.uid, e));
+        }
+
         if (error.code === 'auth/email-already-exists') {
             throw new Error(`A user with the email ${input.email} already exists.`);
         }
-        // Clean up partially created user if Firestore write fails
-        if (error.uid) {
-            await admin.auth().deleteUser(error.uid).catch(e => console.error("Cleanup failed for user:", error.uid, e));
-        }
+        
         throw new Error("An unexpected error occurred while creating the clinic.");
     }
   }
