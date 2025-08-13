@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import ActivityChart from '@/components/activity-chart';
 import { User } from 'firebase/auth';
-import { Progress } from './ui/progress';
 import { Footprints, Flame, Target, Trophy, Sparkles } from 'lucide-react';
 import ProgressRing from './progress-ring';
 import { Button } from './ui/button';
@@ -62,6 +61,37 @@ type ClientDashboardProps = {
   clinic: Clinic | null;
 };
 
+// New Segmented Progress Bar Component
+const StepProgressBar = ({ progress }: { progress: number }) => {
+    const milestones = [
+        { threshold: 0, color: 'bg-red-500', label: '0-30%' },
+        { threshold: 30, color: 'bg-amber-500', label: '30-60%' },
+        { threshold: 60, color: 'bg-yellow-400', label: '60-80%' },
+        { threshold: 80, color: 'bg-green-500', label: '>80%' },
+    ];
+
+    return (
+        <div className="flex w-full h-4 rounded-full overflow-hidden bg-muted gap-1">
+            {milestones.map((milestone, index) => {
+                const isCompleted = progress > milestone.threshold;
+                const isActive = progress > milestone.threshold && (progress <= (milestones[index + 1]?.threshold ?? 101));
+                
+                return (
+                    <div
+                        key={index}
+                        className={cn(
+                            "h-full w-1/4 transition-all duration-500",
+                            isCompleted ? milestone.color : 'bg-muted',
+                            isActive && 'animate-pulse-bright'
+                        )}
+                    />
+                );
+            })}
+        </div>
+    );
+};
+
+
 export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGoalChange, view, clinic }: ClientDashboardProps) {
   const [isGoalDialogOpen, setGoalDialogOpen] = useState(false);
   const [pendingStepGoal, setPendingStepGoal] = useState(dailyStepGoal);
@@ -82,15 +112,8 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
 
   const { steps, activeMinutes } = fitData;
 
-  const stepProgress = steps ? (steps / dailyStepGoal) * 100 : 0;
+  const stepProgress = steps && dailyStepGoal > 0 ? (steps / dailyStepGoal) * 100 : 0;
   const minuteProgress = activeMinutes ? (activeMinutes / DAILY_MINUTE_GOAL) * 100 : 0;
-  
-
-  const getProgressColorClass = (progress: number) => {
-    if (progress < 40) return "bg-red-500";
-    if (progress < 80) return "bg-amber-500";
-    return "bg-green-500";
-  };
   
   const getRingColor = (progress: number) => {
     if (progress < 40) return "#ef4444"; // red-500
@@ -224,7 +247,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
 
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           <Card className="bg-secondary/50">
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
               <div className="flex flex-col gap-1">
                 <CardTitle className="flex items-center gap-2">
                     <Footprints className="h-6 w-6 text-muted-foreground" />
@@ -242,7 +265,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
               </Button>
             </CardHeader>
             <CardContent>
-              <Progress value={stepProgress} trackClassName='bg-muted' indicatorClassName={cn(getProgressColorClass(stepProgress), 'animate-pulse-bright')} />
+              <StepProgressBar progress={stepProgress} />
               <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                  <span>{steps?.toLocaleString() ?? 0} / {dailyStepGoal.toLocaleString()}</span>
                 <span>{Math.round(stepProgress)}%</span>
