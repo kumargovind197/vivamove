@@ -40,15 +40,16 @@ export default function LoginForm() {
 
         sessionStorage.setItem('mockUser', mockUserKey); 
         
+        // This event tells the useAuth hook to re-evaluate the user
         window.dispatchEvent(new Event('storage'));
         
-        // Explicitly check for the admin email for redirection
+        // THIS IS THE FIX: Explicitly check for the admin email for redirection
         if (lowerCaseIdentifier === ADMIN_EMAIL) {
             router.push('/admin');
         } else {
             router.push(mockUserData.redirect || '/');
         }
-        return;
+        return; // Important to stop execution here
     }
     
     // --- FIREBASE AUTH LOGIN (for real users) ---
