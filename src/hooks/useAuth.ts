@@ -5,12 +5,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 
-// A function to get the user's claims, forcing a refresh if necessary.
-const getClaims = async (user: User, forceRefresh = false) => {
-    const tokenResult = await user.getIdTokenResult(forceRefresh);
-    return tokenResult.claims;
-}
-
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -18,45 +12,47 @@ export function useAuth() {
   const [clinicId, setClinicId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const updateUserClaims = useCallback(async (firebaseUser: User | null) => {
-    if (firebaseUser) {
-        setUser(firebaseUser);
-        try {
-            const claims = await getClaims(firebaseUser, true); // Force refresh on change
-            const isAdminClaim = !!claims.admin;
-            const isClinicClaim = !!claims.clinic;
+  useEffect(() => {
+    const unsubscribe = auth.onIdTokenChanged(async (firebaseUser) => {
+        if (firebaseUser) {
+            setUser(firebaseUser);
+            try {
+                // Force a refresh of the token to get the latest claims.
+                const tokenResult = await firebaseUser.getIdTokenResult(true);
+                const claims = tokenResult.claims;
+                
+                const isAdminClaim = !!claims.admin;
+                const isClinicClaim = !!claims.clinic;
 
-            setIsAdmin(isAdminClaim);
-            setIsClinic(isClinicClaim);
+                setIsAdmin(isAdminClaim);
+                setIsClinic(isClinicClaim);
 
-            if (isClinicClaim) {
-                setClinicId(firebaseUser.uid);
-            } else if (claims.clinicId) {
-                setClinicId(claims.clinicId as string);
-            } else {
+                if (isClinicClaim) {
+                    setClinicId(firebaseUser.uid);
+                } else if (claims.clinicId) {
+                    setClinicId(claims.clinicId as string);
+                } else {
+                    setClinicId(null);
+                }
+            } catch (error) {
+                console.error("Error fetching custom claims:", error);
+                // Reset state on error
+                setIsAdmin(false);
+                setIsClinic(false);
                 setClinicId(null);
             }
-        } catch (error) {
-            console.error("Error fetching custom claims:", error);
-            // Reset state on error
+        } else {
+            setUser(null);
             setIsAdmin(false);
             setIsClinic(false);
             setClinicId(null);
         }
-    } else {
-        setUser(null);
-        setIsAdmin(false);
-        setIsClinic(false);
-        setClinicId(null);
-    }
-     setLoading(false);
-  }, []);
+        setLoading(false);
+    });
 
-  useEffect(() => {
-    setLoading(true);
-    const unsubscribe = auth.onIdTokenChanged(updateUserClaims);
+    // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [updateUserClaims]);
+  }, []);
 
   return { user, isAdmin, isClinic, loading, clinicId };
 }
