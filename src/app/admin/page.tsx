@@ -37,13 +37,17 @@ export default function AdminPage() {
           console.error("Error fetching user token:", error);
           setIsAdmin(false);
           setUser(null);
+          router.push('/');
+        } finally {
+            setLoading(false);
         }
       } else {
-        // User is signed out.
+        // User is signed out, redirect to login.
         setIsAdmin(false);
         setUser(null);
+        setLoading(false);
+        router.push('/login');
       }
-      setLoading(false);
     });
 
     // Cleanup subscription on unmount
