@@ -62,18 +62,18 @@ type ClientDashboardProps = {
 };
 
 const stepMilestones = [
-  { name: '0-30%', goal: 30, color: 'bg-red-500', height: 'h-1/4' },
-  { name: '30-60%', goal: 60, color: 'bg-amber-500', height: 'h-2/4' },
-  { name: '60-80%', goal: 80, color: 'bg-yellow-500', height: 'h-3/4' },
-  { name: '>80%', goal: 100, color: 'bg-green-500', height: 'h-full' }
+  { name: '0-30%', goal: 0, color: 'bg-red-500', height: 'h-1/4' },
+  { name: '30-60%', goal: 30, color: 'bg-amber-500', height: 'h-2/4' },
+  { name: '60-80%', goal: 60, color: 'bg-yellow-500', height: 'h-3/4' },
+  { name: '>80%', goal: 80, color: 'bg-green-500', height: 'h-full' }
 ];
 
 const StepStaircase = ({ progress }: { progress: number }) => (
-    <div className="flex w-full min-h-[80px] items-end gap-2 rounded-lg bg-muted p-2">
+    <div className="flex w-full min-h-[120px] items-end gap-2 rounded-lg bg-muted p-2">
       {stepMilestones.map((step) => {
         const isAchieved = progress >= step.goal;
         return (
-          <div key={step.name} className={`w-1/4 rounded-t-md ${step.height} ${isAchieved ? `${step.color} ${progress >= 100 ? 'animate-pulse-bright' : ''}` : 'bg-muted-foreground/20'} transition-colors duration-500`}>
+          <div key={step.name} className={`w-1/4 rounded-t-md ${step.height} ${isAchieved ? `${step.color} animate-pulse-bright` : 'bg-muted-foreground/20'} transition-colors duration-500`}>
           </div>
         );
       })}
@@ -236,7 +236,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           <Card className="bg-secondary/50 flex flex-col">
              <CardHeader className="flex-grow-0">
-                <div className="flex flex-row items-start justify-between pb-2">
+                <div className="flex flex-row items-center justify-between pb-2">
                     <div>
                         <CardTitle>Daily Steps</CardTitle>
                         <CardDescription>
@@ -397,5 +397,3 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     </>
   );
 }
-
-    

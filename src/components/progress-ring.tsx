@@ -19,7 +19,7 @@ const ProgressRing: React.FC<ProgressRingProps> = ({ progress, color, trackColor
   ];
   
   return (
-    <div className={cn("w-[150px] h-[150px] relative", className)}>
+    <div className={cn("w-[150px] h-[150px] relative animate-pulse-bright", className)}>
       <ResponsiveContainer>
         <PieChart>
           <Pie
