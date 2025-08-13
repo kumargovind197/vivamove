@@ -8,7 +8,10 @@ import NotificationManager from '@/components/notification-manager';
 import DataCards from '@/components/data-cards';
 import AdBanner from '@/components/ad-banner';
 import FooterAdBanner from '@/components/footer-ad-banner';
-import type { User } from 'firebase/auth';
+import { useAuth } from './auth-provider';
+import { getFirestore, doc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type Ad = {
   id: string;
@@ -24,35 +27,10 @@ type ClinicData = {
     adsEnabled: boolean;
 }
 
-// Mock user since security is removed
-const mockPatientUser: User = {
-  uid: 'mock-patient-id',
-  email: 'patient@example.com',
-  displayName: 'John Doe',
-  photoURL: null,
-  providerId: 'password',
-  emailVerified: true,
-  isAnonymous: false,
-  metadata: {},
-  providerData: [],
-  tenantId: null,
-  delete: async () => {},
-  getIdToken: async () => 'mock-token',
-  getIdTokenResult: async () => ({
-    token: 'mock-token',
-    expirationTime: '',
-    authTime: '',
-    issuedAtTime: '',
-    signInProvider: null,
-    signInSecondFactor: null,
-    claims: { patient: true, clinicId: 'mock-clinic-id' },
-  }),
-  reload: async () => {},
-  toJSON: () => ({}),
-};
-
-
 export default function Home() {
+  const { user, userClaims, loading } = useAuth();
+  const router = useRouter();
+
   const [dailyStepGoal, setDailyStepGoal] = useState(8000);
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: null, activeMinutes: null });
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
@@ -62,35 +40,90 @@ export default function Home() {
   const [popupAdContent, setPopupAdContent] = useState<Ad | null>(null);
   const [footerAdContent, setFooterAdContent] = useState<Ad | null>(null);
   
-  const user = mockPatientUser; // Use mock user
+  const [isLoadingClinic, setIsLoadingClinic] = useState(true);
+
+  const clinicId = userClaims?.clinicId as string | undefined;
 
   useEffect(() => {
-    // This logic now runs for the mock user
-    const fetchClinicAndAdData = () => {
-        const mockClinicData = {id: "mock-clinic-id", name: "Wellness Clinic", logo: "https://placehold.co/200x80.png", adsEnabled: true};
-        setClinicData(mockClinicData);
+    if (loading) return;
+    
+    // Redirect non-patients or non-logged-in users
+    if (!user) {
+        setTimeout(() => router.push('/login'), 0);
+        return;
+    }
+    // if user is admin or clinic, redirect them away from patient view
+    if (userClaims?.admin) {
+        setTimeout(() => router.push('/admin'), 0);
+        return;
+    }
+     if (userClaims?.clinic) {
+        setTimeout(() => router.push('/clinic'), 0);
+        return;
+    }
 
-        if (mockClinicData.adsEnabled) {
-            // Using mock ads since local storage may not be available or populated
-            const popupAds: Ad[] = [{id: '1', imageUrl: 'https://placehold.co/400x300.png', description: 'ad', targetUrl: '#'}];
-            const footerAds: Ad[] = [{id: '1', imageUrl: 'https://placehold.co/728x90.png', description: 'ad', targetUrl: '#'}];
+    const fetchClinicAndAdData = async () => {
+        if (!clinicId) {
+             setIsLoadingClinic(false);
+             return;
+        }
 
-            if (popupAds.length > 0) {
-                const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
-                setPopupAdContent(randomAd);
-                setShowPopupAd(true);
-            }
-            
-            if (footerAds.length > 0) {
-                const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
-                setFooterAdContent(randomAd);
-                setShowFooterAd(true);
+        const db = getFirestore();
+        const clinicRef = doc(db, 'clinics', clinicId);
+        const clinicSnap = await getDoc(clinicRef);
+        
+        if (clinicSnap.exists()) {
+            const data = clinicSnap.data() as Omit<ClinicData, 'id'>;
+            const currentClinicData = { id: clinicSnap.id, ...data };
+            setClinicData(currentClinicData);
+
+            if (currentClinicData.adsEnabled) {
+                // Using mock ads since local storage may not be available or populated
+                const popupAds: Ad[] = JSON.parse(localStorage.getItem('popupAds') || '[]');
+                const footerAds: Ad[] = JSON.parse(localStorage.getItem('footerAds') || '[]');
+
+                if (popupAds.length > 0) {
+                    const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
+                    setPopupAdContent(randomAd);
+                    setShowPopupAd(true);
+                }
+                
+                if (footerAds.length > 0) {
+                    const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
+                    setFooterAdContent(randomAd);
+                    setShowFooterAd(true);
+                }
             }
         }
+        setIsLoadingClinic(false);
     };
 
     fetchClinicAndAdData();
-  }, []);
+  }, [user, clinicId, loading, router, userClaims]);
+
+  if (loading || isLoadingClinic) {
+     return (
+        <div className="flex min-h-screen w-full flex-col items-center justify-center">
+            <div className="p-8 space-y-4 w-full max-w-4xl">
+                <Skeleton className="h-16 w-full" />
+                <div className="grid grid-cols-3 gap-6">
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                    <Skeleton className="h-24 w-full" />
+                </div>
+                 <div className="grid grid-cols-2 gap-6">
+                    <Skeleton className="h-64 w-full" />
+                    <Skeleton className="h-64 w-full" />
+                </div>
+                <Skeleton className="h-48 w-full" />
+            </div>
+        </div>
+    );
+  }
+
+  if (!user) {
+      return null; // Render nothing while redirecting
+  }
 
   return (
     <div className="flex min-h-screen w-full flex-col">

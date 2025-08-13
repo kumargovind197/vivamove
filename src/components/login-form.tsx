@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
+import { useAuth } from '@/app/auth-provider';
 
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('');
@@ -17,28 +18,22 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { refreshUser } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-      const user = userCredential.user;
-
+      await signInWithEmailAndPassword(auth, identifier, password);
+      // The redirect logic is now handled by the login page and auth provider
+      // We just need to trigger a refresh of the user claims
+      await refreshUser();
+      
       toast({
         title: "Login Successful",
         description: `Redirecting...`,
       });
-      
-       const tokenResult = await user.getIdTokenResult();
-       if (tokenResult.claims.admin) {
-           router.push('/admin');
-       } else if (tokenResult.claims.clinic) {
-            router.push('/clinic');
-       } else {
-           router.push('/');
-       }
 
     } catch (error: any) {
        console.error("Login Error:", error);
