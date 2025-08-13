@@ -212,7 +212,7 @@ type AppHeaderProps = {
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
-  const { isAdmin } = useAuth(); // Use the hook to get admin status
+  const { isAdmin, isClinic } = useAuth(); // Use the hook to get verified roles
 
   useEffect(() => {
     // This function will run on the client side after the component mounts
@@ -326,9 +326,8 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
              </div>
             
             {/* --- DEVELOPER NAVIGATION BUTTONS --- */}
-            {/* Temporarily visible for all users during development */}
             <div className="flex items-center gap-2">
-              {view !== 'client' && (
+              {view !== 'client' && user && (
                 <Button asChild variant="outline">
                     <Link href="/">
                         <UserCircle className="mr-2 h-4 w-4" />
@@ -336,7 +335,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                     </Link>
                 </Button>
               )}
-              {view !== 'clinic' && (
+              {view !== 'clinic' && isClinic && (
                 <Button asChild variant="outline">
                     <Link href="/clinic">
                         <Hospital className="mr-2 h-4 w-4" />
@@ -344,7 +343,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                     </Link>
                 </Button>
               )}
-              {view !== 'admin' && (
+              {view !== 'admin' && isAdmin && (
                 <Button asChild variant="outline">
                     <Link href="/admin">
                         <Wrench className="mr-2 h-4 w-4" />
