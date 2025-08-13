@@ -223,7 +223,7 @@ export default function AppInfoDialog() {
                 <VivaMoveLogo className="h-8 w-auto" />
               )}
              <div>
-                <DialogTitle className="text-xl">ViVa move</DialogTitle>
+                <DialogTitle className="text-xl">ViVa Move</DialogTitle>
                 <DialogDescription>A motivational step tracking app.</DialogDescription>
              </div>
           </div>
@@ -231,24 +231,28 @@ export default function AppInfoDialog() {
         <div className="grid gap-4 py-4 text-sm">
             <div className="flex justify-between">
                 <span className="text-muted-foreground">App Name:</span>
-                <span className="font-medium">ViVa move</span>
+                <span className="font-medium">ViVa Move</span>
             </div>
             <div className="flex justify-between">
                 <span className="text-muted-foreground">App Version:</span>
-                <span className="font-medium">1.0.0</span>
+                <span className="font-medium">2.025.1</span>
             </div>
-             <div className="flex justify-between">
-                <span className="text-muted-foreground">Clinic:</span>
-                <span className="font-medium">Wellness Clinic</span>
+            <div className="flex justify-between">
+                <span className="text-muted-foreground">Owner/Developer:</span>
+                <span className="font-medium">ViVa Health solutions</span>
             </div>
-             <div className="flex justify-between">
+            <div className="flex justify-between">
                 <span className="text-muted-foreground">Contact:</span>
                 <span className="font-medium">Your admin for support</span>
+            </div>
+            <div className="flex justify-between">
+                <span className="text-muted-foreground">URL:</span>
+                <span className="font-medium">(placeholder)</span>
             </div>
         </div>
         <DialogFooter>
           <p className="text-xs text-muted-foreground w-full text-center">
-            &copy; {currentYear} Viva health solutions. All rights reserved.
+            &copy; {currentYear} ViVa Health solutions. All rights reserved.
           </p>
         </DialogFooter>
       </DialogContent>
