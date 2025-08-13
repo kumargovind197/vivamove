@@ -11,11 +11,14 @@ import ProgressRing from './progress-ring';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Slider } from './ui/slider';
-import { MOCK_CLINICS } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import { getDashboardMessage } from '@/lib/motivational-messages';
 
-type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
+type Clinic = {
+    id: string;
+    name: string;
+    logo: string;
+}
 
 // --- MOCK LOCAL DEVICE STORAGE ---
 const generateInitialLocalData = () => {

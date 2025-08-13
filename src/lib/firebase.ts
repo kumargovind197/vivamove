@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import type { User } from 'firebase/auth';
 
+// This is the live configuration for your Firebase project.
 export const firebaseConfig = {
   "projectId": "viva-move",
   "appId": "1:997059442824:web:d60cc73cfc7a0a54fc873d",
@@ -30,3 +31,6 @@ export {
     sendPasswordResetEmail
 };
 export type { User };
+
+
+

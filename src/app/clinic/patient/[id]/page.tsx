@@ -7,7 +7,12 @@ import AppHeader from '@/components/app-header';
 import ClientDashboard from '@/components/client-dashboard';
 import DataCards from '@/components/data-cards';
 import type { User } from 'firebase/auth';
-import { MOCK_CLINICS } from '@/lib/mock-data';
+
+type Clinic = {
+    id: string;
+    name: string;
+    logo: string;
+}
 
 // Mock user for development purposes - this would be the patient's user object
 const mockPatientUser: User = {
@@ -68,13 +73,16 @@ const USER_CLINIC_ID = 'clinic-wellness';
 export default function PatientDetailPage() {
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: 5432, activeMinutes: 25 });
   const [dailyStepGoal, setDailyStepGoal] = useState(10000);
-  const [clinicData, setClinicData] = useState<typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS] | null>(null);
+  const [clinicData, setClinicData] = useState<Clinic | null>(null);
   
   const params = useParams();
   const patientId = params.id as string;
 
+  // In a real app, you would fetch real clinic data
   useEffect(() => {
-    setClinicData(MOCK_CLINICS[USER_CLINIC_ID]);
+    // This is where you would fetch the real clinic data from firestore
+    // For now we use a placeholder:
+    setClinicData({id: "clinic-123", name: "Wellness Clinic", logo: "https://placehold.co/200x80.png"});
   }, []);
 
   // In a real app, you would use patientId to fetch the patient's data.

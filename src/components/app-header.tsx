@@ -7,10 +7,13 @@ import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { User } from 'firebase/auth';
-import { MOCK_CLINICS } from '@/lib/mock-data';
 import { useAuth } from '@/hooks/useAuth';
 
-type Clinic = typeof MOCK_CLINICS[keyof typeof MOCK_CLINICS];
+type Clinic = {
+    id: string;
+    name: string;
+    logo: string;
+}
 
 const VivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -223,7 +226,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
   }, []);
 
   const renderClientBranding = () => {
-    if (clinic) {
+    if (clinic && clinic.logo) {
       return (
         <div className="flex items-center gap-4">
           <div className="w-48 h-12 overflow-hidden rounded-md flex-shrink-0 relative">

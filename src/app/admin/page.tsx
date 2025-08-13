@@ -28,9 +28,6 @@ export default function AdminPage() {
     );
   }
 
-  // --- SECURITY CHECK TEMPORARILY DISABLED FOR DEVELOPMENT ---
-  // This check can be re-enabled before launch.
-  /*
   if (!user || !isAdmin) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
@@ -51,7 +48,6 @@ export default function AdminPage() {
       </div>
     );
   }
-  */
   
   return (
     <div className="flex min-h-screen w-full flex-col">

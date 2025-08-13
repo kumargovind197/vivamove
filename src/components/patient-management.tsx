@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -25,7 +26,8 @@ import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { createPatient } from '@/ai/flows/create-patient-flow';
+import { deletePatient } from '@/ai/flows/delete-patient-flow';
 import { Skeleton } from './ui/skeleton';
 
 interface PatientManagementProps {
@@ -170,6 +172,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
 
   const handleRowClick = (e: React.MouseEvent, patientId: string) => {
     const target = e.target as HTMLElement;
+    // Prevents navigation when clicking on the checkbox or action buttons
     if (target.closest('td:first-child') || target.closest('[data-action-button]')) {
       return;
     }
@@ -224,11 +227,9 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
     }
 
     setLoading(true);
-    const functions = getFunctions();
-    const createPatient = httpsCallable(functions, 'createPatient');
-
+    
     try {
-        const result: any = await createPatient({
+        const result = await createPatient({
             email: newPatient.email,
             password: 'password', // Default password
             displayName: `${newPatient.firstName} ${newPatient.surname}`,
@@ -243,28 +244,24 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
             }
         });
 
-        if (result.data.success) {
-            const newPatientWithId: Patient = { 
-                id: result.data.uid,
-                ...newPatient, 
-                age: parseInt(newPatient.age),
-                // Add dummy percentages until real data is available
-                weeklySteps: Math.floor(Math.random() * 101),
-                weeklyMinutes: Math.floor(Math.random() * 101),
-                monthlySteps: Math.floor(Math.random() * 101),
-                monthlyMinutes: Math.floor(Math.random() * 101),
-            };
-            setPatientsData(prev => [...prev, newPatientWithId]);
-            toast({
-              title: "Patient Registered Successfully",
-              description: `${newPatient.firstName} can now log in.`,
-              duration: 8000,
-            });
-            setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
-            setAddPatientDialogOpen(false);
-        } else {
-             throw new Error(result.data.error || "Failed to create patient.");
-        }
+        const newPatientWithId: Patient = { 
+            id: result.uid,
+            ...newPatient, 
+            age: parseInt(newPatient.age),
+            // Add dummy percentages until real data is available
+            weeklySteps: Math.floor(Math.random() * 101),
+            weeklyMinutes: Math.floor(Math.random() * 101),
+            monthlySteps: Math.floor(Math.random() * 101),
+            monthlyMinutes: Math.floor(Math.random() * 101),
+        };
+        setPatientsData(prev => [...prev, newPatientWithId]);
+        toast({
+            title: "Patient Registered Successfully",
+            description: `${newPatient.firstName} can now log in.`,
+            duration: 8000,
+        });
+        setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
+        setAddPatientDialogOpen(false);
     } catch (error: any) {
         console.error("Error adding patient: ", error);
         toast({
@@ -311,21 +308,14 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
   const handleRemovePatient = async (patient: Patient) => {
       if (!clinicId) return;
       setLoading(true);
-      const functions = getFunctions();
-      const deletePatient = httpsCallable(functions, 'deletePatient');
-
+      
       try {
-        const result: any = await deletePatient({ uid: patient.id, clinicId: clinicId });
-
-        if (result.data.success) {
-            setPatientsData(prev => prev.filter(p => p.id !== patient.id));
-            toast({
-              title: "Patient Removed & Account Disabled",
-              description: `${patient.firstName} ${patient.surname} has been removed and their access revoked.`,
-            });
-        } else {
-            throw new Error(result.data.error || "Failed to remove patient.");
-        }
+        await deletePatient({ uid: patient.id, clinicId: clinicId });
+        setPatientsData(prev => prev.filter(p => p.id !== patient.id));
+        toast({
+            title: "Patient Removed & Account Disabled",
+            description: `${patient.firstName} ${patient.surname} has been removed and their access revoked.`,
+        });
       } catch (error: any) {
          console.error("Error removing patient: ", error);
          toast({ variant: "destructive", title: "Removal Failed", description: error.message });
