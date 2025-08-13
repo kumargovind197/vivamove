@@ -1,43 +1,68 @@
-
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/app-header';
 import AdminPanel from '@/components/admin-panel';
 import { Button } from '@/components/ui/button';
-import { ShieldOff } from 'lucide-react';
+import { ShieldOff, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAuth } from '@/hooks/useAuth.tsx';
+import { auth } from '@/lib/firebase';
+import type { User } from 'firebase/auth';
 
 export default function AdminPage() {
-  const { user, isAdmin, loading } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is logged in, now check for admin claim
+        try {
+          const idTokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh
+          if (idTokenResult.claims.admin) {
+            setUser(firebaseUser);
+            setIsAdmin(true);
+          } else {
+            // Logged in but not an admin
+            setUser(firebaseUser);
+            setIsAdmin(false);
+          }
+        } catch (error) {
+          console.error("Error fetching user claims:", error);
+          setUser(firebaseUser);
+          setIsAdmin(false);
+        }
+      } else {
+        // User is not logged in
+        setUser(null);
+        setIsAdmin(false);
+        router.push('/login'); // Redirect immediately if not logged in
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
 
   if (loading) {
     return (
        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-          <div className="w-full max-w-md space-y-4 m-4">
+          <div className="w-full max-w-md space-y-4 m-4 text-center">
              <Card>
                 <CardHeader>
-                  <Skeleton className="h-8 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-1/2" />
+                  <CardTitle>Verifying Credentials</CardTitle>
                 </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">Verifying administrator credentials...</p>
-                    <Skeleton className="h-10 w-full mt-6" />
+                <CardContent className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-sm text-muted-foreground">Please wait while we confirm your administrator access...</p>
                 </CardContent>
             </Card>
           </div>
       </div>
     );
-  }
-
-  if (!user) {
-    // Redirect to login if user is not logged in
-    router.push('/login');
-    return null; // Render nothing while redirecting
   }
 
   if (!isAdmin) {
@@ -61,6 +86,7 @@ export default function AdminPage() {
     );
   }
   
+  // At this point, user is confirmed to be an admin
   return (
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader user={user} view="admin" clinic={null} />
