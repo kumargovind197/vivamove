@@ -1,4 +1,3 @@
-
 // This is a standalone script to be run from your local machine's terminal.
 // It is NOT part of the Next.js application.
 //
@@ -13,7 +12,7 @@
 //    - Click "Generate new private key" and save the JSON file.
 //    - RENAME the downloaded file to "service-account-key.json".
 //    - PLACE this file in the SAME directory as this script.
-// 4. Update the `userEmail` variable below to the email of the user you want to make an admin.
+// 4. Update the `userEmail` and `roleToSet` variables below.
 // 5. Run the script from your terminal with this command:
 //    node set-admin-script.js
 //
@@ -22,8 +21,12 @@
 const admin = require('firebase-admin');
 
 // --- IMPORTANT ---
-// **UPDATE THIS EMAIL ADDRESS** with the user you want to make an admin.
-const userEmail = "vinitkiranshah@gmail.com";
+// **UPDATE THESE VALUES**
+const userEmail = "REPLACE_WITH_THE_USER_EMAIL@example.com";
+const roleToSet = { admin: true }; // To make a user an admin
+// OR
+// const roleToSet = { clinic: true }; // To make a user a clinic user
+
 // -----------------
 
 
@@ -37,9 +40,9 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
-async function setAdminClaim() {
-    if (userEmail === "REPLACE_WITH_YOUR_EMAIL@example.com") {
-        console.error("ERROR: Please update the 'userEmail' variable in this script with the email address of the user you want to make an admin.");
+async function setCustomClaim() {
+    if (userEmail === "REPLACE_WITH_THE_USER_EMAIL@example.com") {
+        console.error("ERROR: Please update the 'userEmail' variable in this script.");
         return;
     }
 
@@ -47,11 +50,11 @@ async function setAdminClaim() {
         console.log(`Fetching user with email: ${userEmail}...`);
         const user = await admin.auth().getUserByEmail(userEmail);
 
-        console.log(`Found user: ${user.uid}. Setting admin claim...`);
-        await admin.auth().setCustomUserClaims(user.uid, { admin: true });
+        console.log(`Found user: ${user.uid}. Setting custom claims...`);
+        await admin.auth().setCustomUserClaims(user.uid, roleToSet);
 
         console.log("\n✅ SUCCESS!");
-        console.log(`The user '${userEmail}' has been granted admin privileges.`);
+        console.log(`The user '${userEmail}' has been granted the following roles:`, roleToSet);
         console.log("They may need to log out and log back in for the changes to take effect.");
 
     } catch (error) {
@@ -64,4 +67,4 @@ async function setAdminClaim() {
     }
 }
 
-setAdminClaim();
+setCustomClaim();
