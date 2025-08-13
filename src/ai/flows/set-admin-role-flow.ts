@@ -10,6 +10,14 @@ import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import * as admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK if not already initialized.
+// This ensures it's ready when any flow in this file is called.
+if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+}
+
 const SetAdminRoleInputSchema = z.object({
   email: z.string().email().describe('The email address of the user to grant admin privileges.'),
 });
@@ -43,18 +51,6 @@ const setAdminRoleFlow = ai.defineFlow(
     outputSchema: SetAdminRoleOutputSchema,
   },
   async (input) => {
-    // Initialize Firebase Admin SDK if not already initialized.
-    // This lazy initialization ensures it only runs when the flow is invoked.
-    if (!admin.apps.length) {
-        // In a real production environment, you would use a more secure way 
-        // to load credentials, like environment variables or Google Secret Manager.
-        // For this prototype, we assume the environment is already configured.
-        // Ensure GOOGLE_APPLICATION_CREDENTIALS is set in your deployment environment.
-        admin.initializeApp({
-          credential: admin.credential.applicationDefault(),
-        });
-    }
-    
     try {
       const userRecord = await admin.auth().getUserByEmail(input.email);
       

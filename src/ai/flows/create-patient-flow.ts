@@ -72,7 +72,7 @@ const createPatientFlow = ai.defineFlow(
       });
       
       // Step 2: Set a custom claim to link the user to their clinic
-      await admin.auth().setCustomUserClaims(userRecord.uid, { clinicId: input.clinicId });
+      await admin.auth().setCustomUserClaims(userRecord.uid, { clinicId: input.clinicId, patient: true });
       
       // Step 3: Create the patient document in the clinic's sub-collection in Firestore
       const db = admin.firestore();
