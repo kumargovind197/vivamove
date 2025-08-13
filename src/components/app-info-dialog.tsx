@@ -247,7 +247,7 @@ export default function AppInfoDialog() {
             </div>
             <div className="flex justify-between">
                 <span className="text-muted-foreground">URL:</span>
-                <span className="font-medium">(placeholder)</span>
+                <span className="font-medium">Coming soon</span>
             </div>
         </div>
         <DialogFooter>
