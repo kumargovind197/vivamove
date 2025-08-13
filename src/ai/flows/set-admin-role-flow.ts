@@ -16,7 +16,9 @@ if (!admin.apps.length) {
     // to load credentials, like environment variables or Google Secret Manager.
     // For this prototype, we assume the environment is already configured.
     // Ensure GOOGLE_APPLICATION_CREDENTIALS is set in your deployment environment.
-    admin.initializeApp();
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
 }
 
 
