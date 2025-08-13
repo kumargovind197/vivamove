@@ -64,10 +64,10 @@ type ClientDashboardProps = {
 // New Segmented Staircase Progress Bar Component
 const StepStaircase = ({ progress }: { progress: number }) => {
     const milestones = [
-        { threshold: 0, color: 'bg-red-500', alignment: 'items-start' },
+        { threshold: 0, color: 'bg-red-500', alignment: 'items-end' },
         { threshold: 30, color: 'bg-amber-500', alignment: 'items-center' },
-        { threshold: 60, color: 'bg-yellow-400', alignment: 'items-end' },
-        { threshold: 80, color: 'bg-green-500', alignment: 'items-end' },
+        { threshold: 60, color: 'bg-yellow-400', alignment: 'items-start' },
+        { threshold: 80, color: 'bg-green-500', alignment: 'items-start' },
     ];
 
     return (
