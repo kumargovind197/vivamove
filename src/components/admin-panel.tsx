@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
 import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
-import { createClinic } from '@/ai/flows/create-clinic-flow';
+import { createClinic } from '@/app/actions';
 import { Switch } from './ui/switch';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
