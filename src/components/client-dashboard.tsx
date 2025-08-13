@@ -62,22 +62,18 @@ type ClientDashboardProps = {
 };
 
 const stepMilestones = [
-  { name: '25%', goal: 0.25, color: 'bg-red-500', align: 'items-end' },
-  { name: '50%', goal: 0.50, color: 'bg-amber-500', align: 'items-center' },
-  { name: '75%', goal: 0.75, color: 'bg-yellow-500', align: 'items-start' },
-  { name: '100%', goal: 1.0, color: 'bg-green-500', align: 'items-start' }
+  { name: '0-30%', goal: 30, color: 'bg-red-500', height: 'h-1/4' },
+  { name: '30-60%', goal: 60, color: 'bg-amber-500', height: 'h-2/4' },
+  { name: '60-80%', goal: 80, color: 'bg-yellow-500', height: 'h-3/4' },
+  { name: '>80%', goal: 100, color: 'bg-green-500', height: 'h-full' }
 ];
 
 const StepStaircase = ({ progress }: { progress: number }) => (
-    <div className="flex h-20 w-full items-end gap-2 rounded-lg bg-muted p-2">
-      {stepMilestones.map((step, index) => {
-        const isAchieved = progress >= (step.goal * 100);
+    <div className="flex w-full min-h-[80px] items-end gap-2 rounded-lg bg-muted p-2">
+      {stepMilestones.map((step) => {
+        const isAchieved = progress >= step.goal;
         return (
-          <div key={step.name} className={`flex w-1/4 flex-col justify-between rounded-md p-1 ${isAchieved ? `${step.color} animate-pulse-bright` : 'bg-muted-foreground/20'}`}>
-            <div className={`flex w-full ${step.align}`}>
-              {isAchieved && <Footprints className="h-5 w-5 text-white/80" />}
-            </div>
-            <div className="text-right text-xs font-bold text-white/90">{step.name}</div>
+          <div key={step.name} className={`w-1/4 rounded-t-md ${step.height} ${isAchieved ? `${step.color} ${progress >= 100 ? 'animate-pulse-bright' : ''}` : 'bg-muted-foreground/20'} transition-colors duration-500`}>
           </div>
         );
       })}
@@ -238,10 +234,10 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 mb-6">
-          <Card className="bg-secondary/50">
-             <CardHeader>
+          <Card className="bg-secondary/50 flex flex-col">
+             <CardHeader className="flex-grow-0">
                 <div className="flex flex-row items-start justify-between pb-2">
-                    <div className="flex flex-col gap-1">
+                    <div>
                         <CardTitle>Daily Steps</CardTitle>
                         <CardDescription>
                           Your goal is {dailyStepGoal.toLocaleString()} steps today.
@@ -254,12 +250,12 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                         Change Goal
                     </Button>
                 </div>
-                 <div className="text-center">
+                 <div className="text-center py-2">
                     <span className="text-4xl font-bold text-primary">{steps?.toLocaleString() ?? 0}</span>
                     <span className="text-sm text-muted-foreground"> / {dailyStepGoal.toLocaleString()}</span>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex-grow flex flex-col justify-end">
                <StepStaircase progress={stepProgress} />
             </CardContent>
           </Card>
