@@ -5,3 +5,6 @@
 import './flows/set-admin-role-flow';
 import './flows/create-patient-flow';
 import './flows/delete-patient-flow';
+import './flows/create-clinic-flow';
+
+    

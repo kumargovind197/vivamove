@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -6,11 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle, UserCog, Database, Server, UserCheck } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle, UserCog, Database, Server, UserCheck, ShieldPlus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
 import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
+import { createClinic } from '@/ai/flows/create-clinic-flow';
+import { Switch } from './ui/switch';
+import { getFirestore, collection, getDocs } from 'firebase/firestore';
 
 type Ad = {
   id: string;
@@ -18,6 +22,14 @@ type Ad = {
   description: string;
   targetUrl: string;
 }
+
+type Clinic = {
+  id: string;
+  name: string;
+  logo: string;
+  capacity: number;
+  adsEnabled: boolean;
+};
 
 const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -221,6 +233,20 @@ export default function AdminPanel() {
 
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [isGrantingAdmin, setIsGrantingAdmin] = useState(false);
+  
+  const [clinics, setClinics] = useState<Clinic[]>([]);
+  const [isLoadingClinics, setIsLoadingClinics] = useState(true);
+  
+  const [isCreateClinicDialogOpen, setCreateClinicDialogOpen] = useState(false);
+  const [isCreatingClinic, setIsCreatingClinic] = useState(false);
+  const [newClinic, setNewClinic] = useState({
+    name: '',
+    email: '',
+    password: '',
+    logo: '',
+    capacity: 100,
+    adsEnabled: false,
+  });
 
   const { toast } = useToast();
 
@@ -240,8 +266,28 @@ export default function AdminPanel() {
     if (savedFooterAds) {
         setFooterAds(JSON.parse(savedFooterAds));
     }
+    
+    fetchClinics();
 
   }, []);
+  
+  const fetchClinics = async () => {
+    setIsLoadingClinics(true);
+    try {
+        const db = getFirestore();
+        const querySnapshot = await getDocs(collection(db, "clinics"));
+        const clinicsData = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...(doc.data() as Omit<Clinic, 'id'>)
+        }));
+        setClinics(clinicsData);
+    } catch (error) {
+        console.error("Error fetching clinics: ", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch clinic data.' });
+    } finally {
+        setIsLoadingClinics(false);
+    }
+  };
 
   const handleVivaMoveLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -384,6 +430,36 @@ export default function AdminPanel() {
       setIsGrantingAdmin(false);
     }
   };
+  
+  const handleCreateClinic = async () => {
+    if (!newClinic.name || !newClinic.email || !newClinic.password) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing Information',
+        description: 'Please provide a name, email, and temporary password for the new clinic.',
+      });
+      return;
+    }
+    setIsCreatingClinic(true);
+    try {
+      const result = await createClinic(newClinic);
+      toast({
+        title: 'Clinic Created Successfully!',
+        description: result.message,
+      });
+      fetchClinics(); // Refresh the list
+      setCreateClinicDialogOpen(false);
+      setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Creating Clinic',
+        description: error.message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsCreatingClinic(false);
+    }
+  };
 
 
   return (
@@ -407,43 +483,47 @@ export default function AdminPanel() {
             <TabsContent value="clinics">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Clinic Setup Guide</CardTitle>
+                        <CardTitle>Clinic Management</CardTitle>
                         <CardDescription>
-                           Since the app is now connected to a live database, clinic management has moved to Firebase.
+                           Enroll new clinics and view existing ones.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <div className="space-y-4">
-                            <div className="flex items-start gap-4">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">1</div>
-                                <div>
-                                    <h4 className="font-semibold">Create Clinic Users in Firebase</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Go to the Firebase Console &gt; Authentication &gt; Users tab. Click "Add user" to create a new account for each clinic. Use a memorable email and a secure temporary password.
-                                    </p>
-                                </div>
-                            </div>
-                             <div className="flex items-start gap-4">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">2</div>
-                                <div>
-                                    <h4 className="font-semibold">Set Clinic Roles</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        To give a user clinic-level permissions, you must set a custom claim on their account. Use the provided <code>set-admin-script.js</code> in your project files. Update the email in the script to your new clinic's email and run <code>node set-admin-script.js</code>. This will grant them access to the clinic dashboard.
-                                    </p>
-                                </div>
-                            </div>
-                            <div className="flex items-start gap-4">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold text-lg">3</div>
-                                <div>
-                                    <h4 className="font-semibold">Create Clinic Data in Firestore</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        Go to the Firebase Console &gt; Firestore Database. Create a new document in the <code>clinics</code> collection. The Document ID must exactly match the UID of the clinic user you created in Step 1.
-                                    </p>
-                                    <p className="text-sm text-muted-foreground mt-2">
-                                        Add fields to this document like <code>name</code> (string), <code>capacity</code> (number), <code>logo</code> (string, URL to image), and <code>adsEnabled</code> (boolean).
-                                    </p>
-                                </div>
-                            </div>
+                        <Button onClick={() => setCreateClinicDialogOpen(true)}>
+                           <ShieldPlus className="mr-2" /> Enroll New Clinic
+                        </Button>
+                        
+                        <div className="space-y-2">
+                           <Label>Existing Clinics</Label>
+                           <div className="border rounded-lg">
+                                {isLoadingClinics ? (
+                                    <div className="p-4 space-y-3">
+                                        <div className="flex items-center gap-4"><div className="h-10 w-10 bg-muted rounded-md animate-pulse"></div><div className="h-4 w-1/2 bg-muted rounded-md animate-pulse"></div></div>
+                                        <div className="flex items-center gap-4"><div className="h-10 w-10 bg-muted rounded-md animate-pulse"></div><div className="h-4 w-2/3 bg-muted rounded-md animate-pulse"></div></div>
+                                    </div>
+                                ) : clinics.length > 0 ? (
+                                    clinics.map(clinic => (
+                                        <div key={clinic.id} className="flex items-center justify-between p-3 border-b last:border-b-0">
+                                            <div className="flex items-center gap-4">
+                                                <img src={clinic.logo || 'https://placehold.co/40x40.png'} alt={`${clinic.name} Logo`} className="h-10 w-10 rounded-md object-cover bg-muted"/>
+                                                <div>
+                                                    <p className="font-semibold text-sm">{clinic.name}</p>
+                                                    <p className="text-xs text-muted-foreground font-mono">{clinic.id}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-4 text-sm">
+                                                <div>
+                                                    <p className="text-muted-foreground text-xs text-right">Capacity</p>
+                                                    <p className="font-semibold">{clinic.capacity}</p>
+                                                </div>
+                                                <Button variant="ghost" size="icon"><Edit className="h-4 w-4 text-muted-foreground"/></Button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="text-center text-sm text-muted-foreground p-8">No clinics have been enrolled yet.</p>
+                                )}
+                           </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -454,7 +534,7 @@ export default function AdminPanel() {
                         <CardTitle>Grant Admin Privileges</CardTitle>
                         <CardDescription>
                             Enter the email address of an existing user to grant them administrative rights.
-                            This user will have full access to the admin panel. This action is irreversible through the UI.
+                            This user will have full access to the admin panel.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -468,6 +548,10 @@ export default function AdminPanel() {
                                 onChange={(e) => setNewAdminEmail(e.target.value)}
                                 disabled={isGrantingAdmin}
                             />
+                        </div>
+                         <div className="text-xs text-muted-foreground flex gap-2 items-start">
+                           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                           <span>This action is powerful and should be used with caution. Admin rights can also be managed using the `set-admin-script.js` file for emergency access.</span>
                         </div>
                     </CardContent>
                     <CardFooter>
@@ -637,6 +721,51 @@ export default function AdminPanel() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+    
+    {/* Create Clinic Dialog */}
+    <Dialog open={isCreateClinicDialogOpen} onOpenChange={setCreateClinicDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+                <DialogTitle>Enroll New Clinic</DialogTitle>
+                <DialogDescription>
+                    Set up a new clinic account. This will create a user and a corresponding Firestore document.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                    <Label htmlFor="clinic-name">Clinic Name</Label>
+                    <Input id="clinic-name" value={newClinic.name} onChange={(e) => setNewClinic(p => ({...p, name: e.target.value}))} placeholder="e.g. Wellness Center" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="clinic-email">Clinic Login Email</Label>
+                    <Input id="clinic-email" type="email" value={newClinic.email} onChange={(e) => setNewClinic(p => ({...p, email: e.target.value}))} placeholder="clinic@example.com" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="clinic-password">Temporary Password</Label>
+                    <Input id="clinic-password" type="password" value={newClinic.password} onChange={(e) => setNewClinic(p => ({...p, password: e.target.value}))} />
+                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="clinic-logo">Logo URL (Optional)</Label>
+                    <Input id="clinic-logo" value={newClinic.logo} onChange={(e) => setNewClinic(p => ({...p, logo: e.target.value}))} placeholder="https://.../logo.png" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="clinic-capacity">Patient Capacity</Label>
+                    <Input id="clinic-capacity" type="number" value={newClinic.capacity} onChange={(e) => setNewClinic(p => ({...p, capacity: parseInt(e.target.value, 10) || 0}))} />
+                </div>
+                <div className="flex items-center space-x-2">
+                    <Switch id="clinic-ads" checked={newClinic.adsEnabled} onCheckedChange={(checked) => setNewClinic(p => ({...p, adsEnabled: checked}))} />
+                    <Label htmlFor="clinic-ads">Enable Advertising Module</Label>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setCreateClinicDialogOpen(false)} disabled={isCreatingClinic}>Cancel</Button>
+                <Button onClick={handleCreateClinic} disabled={isCreatingClinic}>
+                    {isCreatingClinic ? "Enrolling..." : "Enroll Clinic"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
     </>
   );
-}
+
+    
