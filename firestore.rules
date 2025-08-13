@@ -2,42 +2,44 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check for admin custom claim in the auth token
+    
+    // Helper functions to check user roles from their auth token
     function isAdmin() {
       return request.auth.token.admin == true;
     }
-    
-    // Helper function to check for clinic custom claim
+
     function isClinic() {
       return request.auth.token.clinic == true;
     }
-
-    // Helper function to check if the user is a patient of a specific clinic
-    function isPatientOfClinic(clinicId) {
-      return request.auth.token.patient == true && request.auth.token.clinicId == clinicId;
+    
+    function isPatient() {
+    	return request.auth.token.patient == true;
     }
 
-    // Rule: Admins can read and write all documents in the database.
-    // This is a broad rule that gives full control to designated administrators.
-    match /{document=**} {
-      allow read, write: if isAdmin();
+    function isEnrolledInClinic(clinicId) {
+      return request.auth.token.clinicId == clinicId;
     }
     
-    // Rule: Clinics can be read by any authenticated user.
-    // This allows patients to see the name/logo of the clinic they are enrolled in.
+    // Rules for the 'clinics' collection
     match /clinics/{clinicId} {
-      allow read: if request.auth != null;
-    }
+      // Admins can do anything.
+      // A specific clinic user can read their own document.
+      // A patient can read the document of the clinic they are enrolled in.
+      allow read: if isAdmin() || (isClinic() && request.auth.uid == clinicId) || (isPatient() && isEnrolledInClinic(clinicId));
+      
+      // Only admins can create, update, or delete clinic documents.
+      allow write: if isAdmin();
 
-    // Rule: A clinic can manage its own list of patients.
-    // This allows a logged-in clinic user to create, read, update, and delete patients
-    // ONLY within their own clinic's subcollection.
-    match /clinics/{clinicId}/patients/{patientId} {
-       // A clinic can manage its own patients.
-      allow create, read, update, delete: if isClinic() && request.auth.uid == clinicId;
-      // A patient can read their own data.
-      allow read: if isPatientOfClinic(clinicId) && request.auth.uid == patientId;
+      // Rules for the 'patients' sub-collection within a clinic
+      match /patients/{patientId} {
+        // Admins can read any patient's data.
+        // A clinic user can read data for any patient within their own clinic.
+        // A patient can only read their own data.
+        allow read: if isAdmin() || (isClinic() && request.auth.uid == clinicId) || (isPatient() && request.auth.uid == patientId);
+        
+        // Admins and the managing clinic can create, update, or delete patients.
+        allow write: if isAdmin() || (isClinic() && request.auth.uid == clinicId);
+      }
     }
   }
 }
