@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { User } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 type Clinic = {
     id: string;
@@ -208,18 +209,17 @@ type AppHeaderProps = {
 };
 
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
+  const { claims } = useAuth();
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
-  const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
   
-  const hasAdminRole = view === 'admin';
-  const hasClinicRole = view === 'clinic';
+  const hasAdminRole = claims?.admin;
+  const hasClinicRole = claims?.clinic;
 
   useEffect(() => {
+    // Client-side only check to avoid hydration mismatch
     const savedLogo = localStorage.getItem('vivaMoveLogo');
     if (savedLogo) {
       setVivaMoveLogo(savedLogo);
-    } else {
-      setDefaultVivaMoveLogo(<VivaMoveLogo className="h-8 w-auto" />);
     }
   }, []);
 
@@ -313,7 +313,7 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                  {vivaMoveLogo ? (
                     <img src={vivaMoveLogo} alt="ViVa Move Logo" className="h-8 w-auto" />
                 ) : (
-                    defaultVivaMoveLogo
+                    <VivaMoveLogo className="h-8 w-auto" />
                 )}
                 <div>
                     <span className="block text-sm font-semibold text-primary/80">ViVa move</span>
@@ -331,21 +331,21 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                         </Link>
                     </Button>
                 )}
-                {/* In Admin view, show Clinic view button */}
-                {view === 'admin' && (
+                
+                {hasAdminRole && view !== 'admin' && (
+                     <Button asChild variant="outline">
+                        <Link href="/admin">
+                            <Wrench className="mr-2 h-4 w-4" />
+                            <span>Admin</span>
+                        </Link>
+                    </Button>
+                )}
+
+                {hasClinicRole && view !== 'clinic' && (
                     <Button asChild variant="outline">
                         <Link href="/clinic">
                             <Hospital className="mr-2 h-4 w-4" />
                             <span>Clinic View</span>
-                        </Link>
-                    </Button>
-                )}
-                {/* In Clinic view, show Admin view button */}
-                {view === 'clinic' && (
-                    <Button asChild variant="outline">
-                        <Link href="/admin">
-                            <Wrench className="mr-2 h-4 w-4" />
-                            <span>Admin</span>
                         </Link>
                     </Button>
                 )}

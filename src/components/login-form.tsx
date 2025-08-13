@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
+import { getIdTokenResult } from 'firebase/auth';
 
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('');
@@ -23,16 +24,24 @@ export default function LoginForm() {
     setIsLoading(true);
 
     try {
-      // We attempt to sign in, but since pages are public, this won't gate content.
-      // This is for demonstration purposes.
-      await signInWithEmailAndPassword(auth, identifier, password);
+      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
       
+      // Force refresh of the token to get custom claims
+      const tokenResult = await getIdTokenResult(userCredential.user, true);
+      const claims = tokenResult.claims;
+
       toast({
-        title: "Login Attempted",
-        description: `Since pages are public, you are being redirected to the Admin panel.`,
+        title: "Login Successful",
+        description: `Welcome back! Redirecting...`,
       });
-      // In this reverted state, we just redirect to admin as a default action.
-      router.push('/admin');
+
+      if (claims.admin) {
+        router.push('/admin');
+      } else if (claims.clinic) {
+        router.push('/clinic');
+      } else {
+        router.push('/');
+      }
 
     } catch (error: any) {
        console.error("Login Error:", error);
