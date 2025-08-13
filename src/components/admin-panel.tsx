@@ -431,6 +431,18 @@ export default function AdminPanel() {
     }
   };
   
+  const handleNewClinicLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewClinic(p => ({ ...p, logo: result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleCreateClinic = async () => {
     if (!newClinic.name || !newClinic.email || !newClinic.password) {
       toast({
@@ -442,7 +454,6 @@ export default function AdminPanel() {
     }
     setIsCreatingClinic(true);
     try {
-      // Ensure capacity is a number before sending
       const clinicPayload = {
         ...newClinic,
         capacity: Number(newClinic.capacity) || 0,
@@ -750,8 +761,11 @@ export default function AdminPanel() {
                     <Input id="clinic-password" type="password" value={newClinic.password} onChange={(e) => setNewClinic(p => ({...p, password: e.target.value}))} />
                 </div>
                  <div className="space-y-2">
-                    <Label htmlFor="clinic-logo">Logo URL (Optional)</Label>
-                    <Input id="clinic-logo" value={newClinic.logo} onChange={(e) => setNewClinic(p => ({...p, logo: e.target.value}))} placeholder="https://.../logo.png" />
+                    <Label htmlFor="clinic-logo">Clinic Logo (Optional)</Label>
+                    <div className="flex items-center gap-4">
+                        {newClinic.logo && <img src={newClinic.logo} alt="Logo preview" className="h-10 w-10 object-cover rounded-md bg-muted"/>}
+                        <Input id="clinic-logo" type="file" accept="image/*" onChange={handleNewClinicLogoSelect} />
+                    </div>
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="clinic-capacity">Patient Capacity</Label>
