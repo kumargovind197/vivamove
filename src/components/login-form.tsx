@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -10,9 +9,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
-import { MOCK_USERS } from '@/lib/mock-data';
-
-const ADMIN_EMAIL = 'vinitkiranshah@gmail.com';
 
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('');
@@ -26,36 +22,7 @@ export default function LoginForm() {
     e.preventDefault();
     setIsLoading(true);
 
-    const lowerCaseIdentifier = identifier.toLowerCase();
-    
-    // --- MOCK USER LOGIN CHECK ---
-    const mockUserKey = Object.keys(MOCK_USERS).find(key => key.toLowerCase() === lowerCaseIdentifier);
-    const mockUserData = mockUserKey ? MOCK_USERS[mockUserKey as keyof typeof MOCK_USERS] : null;
-
-    if (mockUserData && mockUserData.password === password) {
-        toast({
-            title: "Login Successful",
-            description: "Redirecting...",
-        });
-
-        sessionStorage.setItem('mockUser', mockUserKey); 
-        
-        // This event tells the useAuth hook to re-evaluate the user
-        window.dispatchEvent(new Event('storage'));
-        
-        // ** THE FIX **: Prioritize the admin redirect.
-        if (lowerCaseIdentifier === ADMIN_EMAIL.toLowerCase()) {
-            router.push('/admin');
-        } else {
-            router.push(mockUserData.redirect || '/');
-        }
-        return; // Important to stop execution here
-    }
-    
-    // --- FIREBASE AUTH LOGIN (for real users) ---
     try {
-      sessionStorage.removeItem('mockUser');
-
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
       const user = userCredential.user;
 
@@ -67,6 +34,8 @@ export default function LoginForm() {
        const tokenResult = await user.getIdTokenResult();
        if (tokenResult.claims.admin) {
            router.push('/admin');
+       } else if (tokenResult.claims.clinic) {
+            router.push('/clinic');
        } else {
            router.push('/');
        }
@@ -76,7 +45,9 @@ export default function LoginForm() {
        toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid credentials. Please check your username and password.",
+        description: error.code === 'auth/invalid-credential' 
+            ? "Invalid credentials. Please check your email and password."
+            : "An unexpected error occurred. Please try again.",
       });
     } finally {
         setIsLoading(false);
@@ -87,8 +58,8 @@ export default function LoginForm() {
     if (!identifier) {
       toast({
         variant: 'destructive',
-        title: 'Email/ID Required',
-        description: 'Please enter your email or Clinic ID to recover your password.',
+        title: 'Email Required',
+        description: 'Please enter your email address to recover your password.',
       });
       return;
     }
@@ -98,13 +69,14 @@ export default function LoginForm() {
         await sendPasswordResetEmail(auth, identifier);
         toast({
             title: 'Password Recovery Email Sent',
-            description: `If a real account exists for ${identifier}, a recovery link has been sent. This does not apply to mock users.`,
+            description: `If an account exists for ${identifier}, a recovery link has been sent.`,
         });
     } catch (error: any) {
         console.error("Password Reset Error:", error);
         toast({
-            title: 'Password Recovery Attempted',
-            description: `If a real account exists for ${identifier}, a recovery link has been sent. This does not apply to mock users with Clinic IDs.`,
+            variant: "destructive",
+            title: 'Password Recovery Failed',
+            description: "Please ensure you have entered a valid email address.",
         });
     } finally {
         setIsLoading(false);
@@ -121,11 +93,11 @@ export default function LoginForm() {
       <form onSubmit={handleLogin}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="identifier">Email or Clinic ID</Label>
+            <Label htmlFor="identifier">Email</Label>
             <Input
               id="identifier"
-              type="text"
-              placeholder="e.g., patient@example.com or clinic-wellness"
+              type="email"
+              placeholder="user@example.com"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               required

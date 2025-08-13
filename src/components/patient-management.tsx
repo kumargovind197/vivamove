@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
@@ -25,20 +24,27 @@ import { Checkbox } from './ui/checkbox';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { MOCK_USERS, removeUser, MOCK_CLINICS, addUser } from '@/lib/mock-data';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { Skeleton } from './ui/skeleton';
 
-const initialPatientsData = [
-  { id: '1', uhid: 'UHID-001', firstName: 'John', surname: 'Smith', email: 'john.smith@example.com', age: 45, gender: 'Male', weeklySteps: 85, weeklyMinutes: 100, monthlySteps: 75, monthlyMinutes: 80 },
-  { id: '2', uhid: 'UHID-002', firstName: 'Emily', surname: 'Jones', email: 'emily.jones@example.com', age: 32, gender: 'Female', weeklySteps: 42, weeklyMinutes: 57, monthlySteps: 55, monthlyMinutes: 65 },
-  { id: '3', uhid: 'UHID-003', firstName: 'Michael', surname: 'Johnson', email: 'michael.johnson@example.com', age: 51, gender: 'Male', weeklySteps: 100, weeklyMinutes: 100, monthlySteps: 90, monthlyMinutes: 93 },
-  { id: '4', uhid: 'UHID-004', firstName: 'Sarah', surname: 'Miller', email: 'sarah.miller@example.com', age: 28, gender: 'Female', weeklySteps: 28, weeklyMinutes: 14, monthlySteps: 40, monthlyMinutes: 30 },
-  { id: '5', uhid: 'UHID-005', firstName: 'David', surname: 'Wilson', email: 'david.wilson@example.com', age: 67, gender: 'Male', weeklySteps: 71, weeklyMinutes: 85, monthlySteps: 65, monthlyMinutes: 70 },
-  { id: '6', uhid: 'UHID-006', firstName: 'Jessica', surname: 'Brown', email: 'jessica.brown@example.com', age: 39, gender: 'Female', weeklySteps: 57, weeklyMinutes: 42, monthlySteps: 70, monthlyMinutes: 60 },
-  // Add the main mock user to this list so they can be "removed"
-  { id: '7', uhid: 'UHID-007', firstName: 'John', surname: 'Doe', email: 'patient@example.com', age: 40, gender: 'Male', weeklySteps: 60, weeklyMinutes: 70, monthlySteps: 65, monthlyMinutes: 75 },
-];
+interface PatientManagementProps {
+  clinicId: string | null;
+}
 
-type Patient = typeof initialPatientsData[0];
+type Patient = { 
+  id: string; // This will be the user's UID
+  uhid: string; 
+  firstName: string; 
+  surname: string; 
+  email: string; 
+  age: number; 
+  gender: string; 
+  weeklySteps?: number; // These will be calculated later or fetched
+  weeklyMinutes?: number; 
+  monthlySteps?: number; 
+  monthlyMinutes?: number; 
+};
 
 const getPercentageBadgeClass = (progress: number) => {
     if (progress < 40) return "bg-red-500/20 text-red-300";
@@ -57,12 +63,14 @@ const SUGGESTED_MESSAGES: Partial<Record<FilterOption, string>> = {
 
 const filterPrecedence: FilterOption[] = ['<30', '30-50', '50-80', '>80', 'all'];
 
-export default function PatientManagement() {
+export default function PatientManagement({ clinicId }: PatientManagementProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all-patients');
   const [stepFilter, setStepFilter] = useState<FilterOption>('all');
   const [minuteFilter, setMinuteFilter] = useState<FilterOption>('all');
-  const [patientsData, setPatientsData] = useState(initialPatientsData);
+  const [patientsData, setPatientsData] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [isAddPatientDialogOpen, setAddPatientDialogOpen] = useState(false);
   const [isEditPatientDialogOpen, setEditPatientDialogOpen] = useState(false);
   const [patientToEdit, setPatientToEdit] = useState<Patient | null>(null);
@@ -72,11 +80,47 @@ export default function PatientManagement() {
   const [selectedPatientIds, setSelectedPatientIds] = useState<string[]>([]);
   const [isMessageDialogOpen, setMessageDialogOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState('');
+  
+  const [clinicCapacity, setClinicCapacity] = useState(0);
+
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!clinicId) return;
+
+    const fetchPatientsAndClinicData = async () => {
+        setLoading(true);
+        const db = getFirestore();
+        
+        // Fetch clinic data for capacity
+        const clinicRef = doc(db, "clinics", clinicId);
+        const clinicSnap = await getDoc(clinicRef);
+        if (clinicSnap.exists()) {
+            setClinicCapacity(clinicSnap.data().capacity || 0);
+        }
+
+        // Fetch patients
+        const patientsCollectionRef = collection(db, "clinics", clinicId, "patients");
+        const querySnapshot = await getDocs(patientsCollectionRef);
+        const fetchedPatients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
+
+        // Add dummy percentages for now
+        const patientsWithPercentages = fetchedPatients.map(p => ({
+            ...p,
+            weeklySteps: Math.floor(Math.random() * 101),
+            weeklyMinutes: Math.floor(Math.random() * 101),
+            monthlySteps: Math.floor(Math.random() * 101),
+            monthlyMinutes: Math.floor(Math.random() * 101),
+        }));
+
+        setPatientsData(patientsWithPercentages);
+        setLoading(false);
+    };
+
+    fetchPatientsAndClinicData();
+  }, [clinicId]);
   
-  // This would be fetched from a config or passed as a prop in a real app
-  const maxPatients = MOCK_CLINICS['clinic-wellness'].capacity;
 
   const filteredPatients = useMemo(() => {
     let patients = patientsData;
@@ -95,8 +139,8 @@ export default function PatientManagement() {
         const stepKey = activeTab === 'weekly-report' ? 'weeklySteps' : 'monthlySteps';
         const minuteKey = activeTab === 'weekly-report' ? 'weeklyMinutes' : 'monthlyMinutes';
 
-        const filterByPercentage = (patientValue: number, filter: FilterOption) => {
-            if (filter === 'all') return true;
+        const filterByPercentage = (patientValue: number | undefined, filter: FilterOption) => {
+            if (filter === 'all' || patientValue === undefined) return true;
             switch (filter) {
                 case '<30': return patientValue < 30;
                 case '30-50': return patientValue >= 30 && patientValue <= 50;
@@ -121,12 +165,11 @@ export default function PatientManagement() {
   }, [searchQuery, activeTab, stepFilter, minuteFilter]);
 
   const currentPatientCount = patientsData.length;
-  const remainingSlots = maxPatients - currentPatientCount;
-  const isAtCapacity = currentPatientCount >= maxPatients;
+  const remainingSlots = clinicCapacity - currentPatientCount;
+  const isAtCapacity = currentPatientCount >= clinicCapacity && clinicCapacity > 0;
 
   const handleRowClick = (e: React.MouseEvent, patientId: string) => {
     const target = e.target as HTMLElement;
-    // Prevent navigation if a checkbox or the cell containing it was clicked, or an action button
     if (target.closest('td:first-child') || target.closest('[data-action-button]')) {
       return;
     }
@@ -145,7 +188,8 @@ export default function PatientManagement() {
   const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!patientToEdit) return;
     const { id, value } = e.target;
-    setPatientToEdit(prev => prev ? { ...prev, [id]: value } : null);
+    const key = id.replace('-edit', ''); // remove suffix if present
+    setPatientToEdit(prev => prev ? { ...prev, [key]: value } : null);
   }
 
   const handleEditSelectChange = (id: 'gender', value: string) => {
@@ -169,75 +213,127 @@ export default function PatientManagement() {
     }
   };
 
-  const handleAddPatient = () => {
-    if (newPatient.uhid && newPatient.firstName && newPatient.surname && newPatient.email && newPatient.age && newPatient.gender) {
-      
-      const userAdded = addUser(newPatient.email, 'client', '/');
-      if (!userAdded) {
-          toast({
-              variant: "destructive",
-              title: "Registration Failed",
-              description: `A user with the email '${newPatient.email}' already exists.`,
-          });
-          return;
-      }
-      
-      const newPatientWithId = { 
-          ...newPatient, 
-          age: parseInt(newPatient.age),
-          id: (patientsData.length + 1).toString(),
-          weeklySteps: Math.floor(Math.random() * 101),
-          weeklyMinutes: Math.floor(Math.random() * 101),
-          monthlySteps: Math.floor(Math.random() * 101),
-          monthlyMinutes: Math.floor(Math.random() * 101),
-      };
-      setPatientsData(prev => [...prev, newPatientWithId]);
-      
-      toast({
-        title: "Patient Registered & Login Created",
-        description: `${newPatient.firstName} can now log in with the email ${newPatient.email} and the default password 'password'. They will be prompted to reset it.`,
-        duration: 8000,
-      });
-
-      setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
-      setAddPatientDialogOpen(false);
-    } else {
+  const handleAddPatient = async () => {
+    if (!clinicId || !newPatient.uhid || !newPatient.firstName || !newPatient.surname || !newPatient.email || !newPatient.age || !newPatient.gender) {
       toast({
         variant: "destructive",
         title: "Validation Error",
         description: "Please fill out all fields to add a patient.",
       });
+      return;
+    }
+
+    setLoading(true);
+    const functions = getFunctions();
+    const createPatient = httpsCallable(functions, 'createPatient');
+
+    try {
+        const result: any = await createPatient({
+            email: newPatient.email,
+            password: 'password', // Default password
+            displayName: `${newPatient.firstName} ${newPatient.surname}`,
+            clinicId: clinicId,
+            patientData: {
+                uhid: newPatient.uhid,
+                firstName: newPatient.firstName,
+                surname: newPatient.surname,
+                email: newPatient.email,
+                age: parseInt(newPatient.age),
+                gender: newPatient.gender,
+            }
+        });
+
+        if (result.data.success) {
+            const newPatientWithId: Patient = { 
+                id: result.data.uid,
+                ...newPatient, 
+                age: parseInt(newPatient.age),
+                // Add dummy percentages until real data is available
+                weeklySteps: Math.floor(Math.random() * 101),
+                weeklyMinutes: Math.floor(Math.random() * 101),
+                monthlySteps: Math.floor(Math.random() * 101),
+                monthlyMinutes: Math.floor(Math.random() * 101),
+            };
+            setPatientsData(prev => [...prev, newPatientWithId]);
+            toast({
+              title: "Patient Registered Successfully",
+              description: `${newPatient.firstName} can now log in.`,
+              duration: 8000,
+            });
+            setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
+            setAddPatientDialogOpen(false);
+        } else {
+             throw new Error(result.data.error || "Failed to create patient.");
+        }
+    } catch (error: any) {
+        console.error("Error adding patient: ", error);
+        toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: error.message,
+        });
+    } finally {
+        setLoading(false);
     }
   }
 
-  const handleEditPatient = () => {
-      if (!patientToEdit) return;
-       const updatedPatient = {
-        ...patientToEdit,
-        age: typeof patientToEdit.age === 'string' ? parseInt(patientToEdit.age) : patientToEdit.age,
-      };
-      setPatientsData(prev => prev.map(p => p.id === patientToEdit.id ? updatedPatient : p));
-      toast({
-          title: "Patient Details Updated",
-          description: `Details for ${patientToEdit.firstName} ${patientToEdit.surname} have been saved.`,
-      });
-      setEditPatientDialogOpen(false);
-      setPatientToEdit(null);
+  const handleEditPatient = async () => {
+      if (!patientToEdit || !clinicId) return;
+
+      setLoading(true);
+      const db = getFirestore();
+      const patientRef = doc(db, "clinics", clinicId, "patients", patientToEdit.id);
+
+      try {
+        const updatedData = {
+          ...patientToEdit,
+          age: typeof patientToEdit.age === 'string' ? parseInt(patientToEdit.age) : patientToEdit.age,
+        };
+        // Remove ID from the object to be saved, as it's the doc ID
+        const { id, ...dataToSave } = updatedData;
+
+        await setDoc(patientRef, dataToSave, { merge: true });
+        setPatientsData(prev => prev.map(p => p.id === patientToEdit.id ? updatedData : p));
+        toast({
+            title: "Patient Details Updated",
+            description: `Details for ${patientToEdit.firstName} ${patientToEdit.surname} have been saved.`,
+        });
+        setEditPatientDialogOpen(false);
+        setPatientToEdit(null);
+      } catch (error: any) {
+          console.error("Error updating patient: ", error);
+          toast({ variant: "destructive", title: "Update Failed", description: error.message });
+      } finally {
+          setLoading(false);
+      }
   }
 
-  const handleRemovePatient = (patient: Patient) => {
-      // Remove from the local UI list
-      setPatientsData(prev => prev.filter(p => p.id !== patient.id));
-      
-      // Remove from the central mock user database to "disable" their account
-      removeUser(patient.email);
+  const handleRemovePatient = async (patient: Patient) => {
+      if (!clinicId) return;
+      setLoading(true);
+      const functions = getFunctions();
+      const deletePatient = httpsCallable(functions, 'deletePatient');
 
-      toast({
-        title: "Patient Removed & Account Disabled",
-        description: `${patient.firstName} ${patient.surname} has been removed and their access revoked.`,
-      });
-      setPatientToRemove(null);
-      setDeleteConfirmationInput('');
+      try {
+        const result: any = await deletePatient({ uid: patient.id, clinicId: clinicId });
+
+        if (result.data.success) {
+            setPatientsData(prev => prev.filter(p => p.id !== patient.id));
+            toast({
+              title: "Patient Removed & Account Disabled",
+              description: `${patient.firstName} ${patient.surname} has been removed and their access revoked.`,
+            });
+        } else {
+            throw new Error(result.data.error || "Failed to remove patient.");
+        }
+      } catch (error: any) {
+         console.error("Error removing patient: ", error);
+         toast({ variant: "destructive", title: "Removal Failed", description: error.message });
+      } finally {
+        setPatientToRemove(null);
+        setDeleteConfirmationInput('');
+        setLoading(false);
+      }
   }
 
 
@@ -248,7 +344,6 @@ export default function PatientManagement() {
     let messageKey: FilterOption | null = null;
 
     if (stepFilter !== 'all' || minuteFilter !== 'all') {
-      // Prioritize the filter for the lower performance bracket
       if (stepFilter !== 'all' && (stepIndex < minuteIndex || minuteFilter === 'all')) {
         messageKey = stepFilter;
       } else if (minuteFilter !== 'all') {
@@ -281,6 +376,16 @@ export default function PatientManagement() {
     }
   }
   
+  if (loading && patientsData.length === 0) {
+    return (
+       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8 space-y-4">
+            <Skeleton className="h-10 w-1/4" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-64 w-full" />
+       </div>
+    )
+  }
+
   const renderReportTable = (data: typeof patientsData, period: 'weekly' | 'monthly') => {
       const stepKey = period === 'weekly' ? 'weeklySteps' : 'monthlySteps';
       const minuteKey = period === 'weekly' ? 'weeklyMinutes' : 'monthlyMinutes';
@@ -356,13 +461,13 @@ export default function PatientManagement() {
                                 <TableCell className="font-mono">{patient.uhid}</TableCell>
                                 <TableCell className="font-medium">{`${patient.firstName} ${patient.surname}`}</TableCell>
                                 <TableCell>
-                                  <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-md ${getPercentageBadgeClass(patient[stepKey])}`}>
-                                      {patient[stepKey]}%
+                                  <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-md ${getPercentageBadgeClass(patient[stepKey] || 0)}`}>
+                                      {patient[stepKey] || 0}%
                                   </span>
                                 </TableCell>
                                 <TableCell>
-                                    <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-md ${getPercentageBadgeClass(patient[minuteKey])}`}>
-                                      {patient[minuteKey]}%
+                                    <span className={`inline-block px-2 py-0.5 text-xs font-semibold rounded-md ${getPercentageBadgeClass(patient[minuteKey] || 0)}`}>
+                                      {patient[minuteKey] || 0}%
                                     </span>
                                 </TableCell>
                             </TableRow>
@@ -464,7 +569,7 @@ export default function PatientManagement() {
                         <CardContent className="grid grid-cols-3 items-center p-4 pt-0">
                             <div className="text-sm text-left">
                                 <p className="text-muted-foreground">Enrolled / Capacity</p>
-                                <p className="text-lg font-bold">{currentPatientCount} / {maxPatients}</p>
+                                <p className="text-lg font-bold">{currentPatientCount} / {clinicCapacity > 0 ? clinicCapacity : 'N/A'}</p>
                             </div>
                             <div className="flex justify-center">
                                  <Image 
@@ -478,11 +583,11 @@ export default function PatientManagement() {
                             </div>
                             <div className="text-sm text-right">
                                 <p className="text-muted-foreground">Available Slots</p>
-                                <p className="text-lg font-bold">{remainingSlots}</p>
+                                <p className="text-lg font-bold">{clinicCapacity > 0 ? remainingSlots : 'N/A'}</p>
                             </div>
                         </CardContent>
                         <CardFooter className='text-xs text-muted-foreground pt-0 pb-4 px-4'>
-                            If you need more patient slots, please contact the ViVa move team.
+                            Clinic capacity is managed in its Firestore document.
                         </CardFooter>
                     </Card>
 
@@ -533,7 +638,7 @@ export default function PatientManagement() {
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently remove <span className="font-semibold">{`${patient.firstName} ${patient.surname}`}</span> from your clinic and revoke their access.
+                                            This action cannot be undone. This will permanently remove <span className="font-semibold">{`${patient.firstName} ${patient.surname}`}</span> from your clinic and disable their login.
                                             <br/><br/>
                                             To confirm, please type <strong className="text-foreground">delete</strong> below.
                                             </AlertDialogDescription>
@@ -549,10 +654,10 @@ export default function PatientManagement() {
                                             <AlertDialogCancel onClick={() => setPatientToRemove(null)}>Cancel</AlertDialogCancel>
                                             <AlertDialogAction 
                                                 onClick={() => handleRemovePatient(patient)}
-                                                disabled={deleteConfirmationInput !== 'delete'}
+                                                disabled={deleteConfirmationInput !== 'delete' || loading}
                                                 className={buttonVariants({ variant: "destructive" })}
                                             >
-                                            Proceed
+                                            {loading ? 'Removing...' : 'Proceed'}
                                             </AlertDialogAction>
                                         </AlertDialogFooter>
                                         </AlertDialogContent>
@@ -575,7 +680,7 @@ export default function PatientManagement() {
           <DialogHeader>
             <DialogTitle>Add New Patient</DialogTitle>
             <DialogDescription>
-              Enter the patient's details below to enroll them in the clinic.
+              Enter the patient's details below. An account will be created with a default password.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -616,7 +721,7 @@ export default function PatientManagement() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddPatientDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddPatient}>Add Patient</Button>
+            <Button onClick={handleAddPatient} disabled={loading}>{loading ? "Registering..." : "Add Patient"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -636,25 +741,25 @@ export default function PatientManagement() {
                   <Input id="uhid-edit" value={patientToEdit.uhid} className="col-span-3" disabled />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="firstName" className="text-right">First Name</Label>
-                  <Input id="firstName" value={patientToEdit.firstName} onChange={handleEditInputChange} className="col-span-3" />
+                  <Label htmlFor="firstName-edit" className="text-right">First Name</Label>
+                  <Input id="firstName-edit" value={patientToEdit.firstName} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="surname" className="text-right">Surname</Label>
-                  <Input id="surname" value={patientToEdit.surname} onChange={handleEditInputChange} className="col-span-3" />
+                  <Label htmlFor="surname-edit" className="text-right">Surname</Label>
+                  <Input id="surname-edit" value={patientToEdit.surname} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">Email</Label>
-                  <Input id="email" type="email" value={patientToEdit.email} onChange={handleEditInputChange} className="col-span-3" />
+                  <Label htmlFor="email-edit" className="text-right">Email</Label>
+                  <Input id="email-edit" type="email" value={patientToEdit.email} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="age" className="text-right">Age</Label>
-                  <Input id="age" type="number" value={patientToEdit.age} onChange={handleEditInputChange} className="col-span-3" />
+                  <Label htmlFor="age-edit" className="text-right">Age</Label>
+                  <Input id="age-edit" type="number" value={patientToEdit.age} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="gender" className="text-right">Gender</Label>
+                  <Label htmlFor="gender-edit" className="text-right">Gender</Label>
                     <Select onValueChange={(value) => handleEditSelectChange('gender', value)} value={patientToEdit.gender}>
-                        <SelectTrigger className="col-span-3">
+                        <SelectTrigger id="gender-edit" className="col-span-3">
                             <SelectValue placeholder="Select..." />
                         </SelectTrigger>
                         <SelectContent>
@@ -668,7 +773,7 @@ export default function PatientManagement() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditPatientDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleEditPatient}>Save Changes</Button>
+                <Button onClick={handleEditPatient} disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
