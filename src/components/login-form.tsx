@@ -12,6 +12,8 @@ import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
 import { MOCK_USERS } from '@/lib/mock-data';
 
+const ADMIN_EMAIL = 'vinitkiranshah@gmail.com';
+
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -36,19 +38,21 @@ export default function LoginForm() {
             description: "Redirecting...",
         });
 
-        // Use session storage for mock users to persist state across page loads
         sessionStorage.setItem('mockUser', mockUserKey); 
         
-        // Force a storage event to trigger the useAuth hook update immediately
         window.dispatchEvent(new Event('storage'));
-
-        router.push(mockUserData.redirect || '/');
+        
+        // Explicitly check for the admin email for redirection
+        if (lowerCaseIdentifier === ADMIN_EMAIL) {
+            router.push('/admin');
+        } else {
+            router.push(mockUserData.redirect || '/');
+        }
         return;
     }
     
     // --- FIREBASE AUTH LOGIN (for real users) ---
     try {
-      // Clear any mock user session before trying a real login
       sessionStorage.removeItem('mockUser');
 
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
@@ -59,12 +63,10 @@ export default function LoginForm() {
         description: `Redirecting...`,
       });
       
-       // This check is still good for real Firebase users
        const tokenResult = await user.getIdTokenResult();
        if (tokenResult.claims.admin) {
            router.push('/admin');
        } else {
-           // Fallback for non-admin real users if needed
            router.push('/');
        }
 
@@ -84,8 +86,8 @@ export default function LoginForm() {
     if (!identifier) {
       toast({
         variant: 'destructive',
-        title: 'Email Required',
-        description: 'Please enter your email address to recover your password.',
+        title: 'Email/ID Required',
+        description: 'Please enter your email or Clinic ID to recover your password.',
       });
       return;
     }
@@ -100,8 +102,8 @@ export default function LoginForm() {
     } catch (error: any) {
         console.error("Password Reset Error:", error);
         toast({
-            title: 'Password Recovery Email Sent',
-            description: `If a real account exists for ${identifier}, a recovery link has been sent. This does not apply to mock users.`,
+            title: 'Password Recovery Attempted',
+            description: `If a real account exists for ${identifier}, a recovery link has been sent. This does not apply to mock users with Clinic IDs.`,
         });
     } finally {
         setIsLoading(false);
