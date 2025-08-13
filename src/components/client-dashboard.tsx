@@ -61,30 +61,34 @@ type ClientDashboardProps = {
   clinic: Clinic | null;
 };
 
-// New Segmented Progress Bar Component
-const StepProgressBar = ({ progress }: { progress: number }) => {
+// New Segmented Staircase Progress Bar Component
+const StepStaircase = ({ progress }: { progress: number }) => {
     const milestones = [
-        { threshold: 0, color: 'bg-red-500', label: '0-30%' },
-        { threshold: 30, color: 'bg-amber-500', label: '30-60%' },
-        { threshold: 60, color: 'bg-yellow-400', label: '60-80%' },
-        { threshold: 80, color: 'bg-green-500', label: '>80%' },
+        { threshold: 0, color: 'bg-red-500', alignment: 'items-start' },
+        { threshold: 30, color: 'bg-amber-500', alignment: 'items-center' },
+        { threshold: 60, color: 'bg-yellow-400', alignment: 'items-end' },
+        { threshold: 80, color: 'bg-green-500', alignment: 'items-end' },
     ];
 
     return (
-        <div className="flex w-full h-4 rounded-full overflow-hidden bg-muted gap-1">
+        <div className="flex w-full h-full min-h-[60px] gap-2">
             {milestones.map((milestone, index) => {
                 const isCompleted = progress > milestone.threshold;
                 const isActive = progress > milestone.threshold && (progress <= (milestones[index + 1]?.threshold ?? 101));
                 
+                // Special case for the last step to also be active when progress is >= 80
+                const isLastStepActive = index === 3 && progress >= 80;
+
                 return (
-                    <div
-                        key={index}
-                        className={cn(
-                            "h-full w-1/4 transition-all duration-500",
-                            isCompleted ? milestone.color : 'bg-muted',
-                            isActive && 'animate-pulse-bright'
-                        )}
-                    />
+                    <div key={index} className={cn("flex w-1/4", milestone.alignment)}>
+                        <div
+                            className={cn(
+                                "h-1/2 w-full rounded-md transition-all duration-500",
+                                isCompleted ? milestone.color : 'bg-muted',
+                                (isActive || isLastStepActive) && 'animate-pulse-bright'
+                            )}
+                        />
+                    </div>
                 );
             })}
         </div>
@@ -247,29 +251,31 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
 
         <div className="grid gap-6 md:grid-cols-2 mb-6">
           <Card className="bg-secondary/50">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <div className="flex flex-col gap-1">
-                <CardTitle className="flex items-center gap-2">
-                    <Footprints className="h-6 w-6 text-muted-foreground" />
-                    <span>Daily Steps</span>
-                </CardTitle>
-                <CardDescription>
-                  Your goal is {dailyStepGoal.toLocaleString()} steps today.
-                </CardDescription>
+            <CardHeader>
+              <div className="flex flex-row items-start justify-between pb-2">
+                <div className="flex flex-col gap-1">
+                    <CardTitle className="flex items-center gap-2">
+                        <Footprints className="h-6 w-6 text-muted-foreground" />
+                        <span>Daily Steps</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Your goal is {dailyStepGoal.toLocaleString()} steps today.
+                    </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => {
+                    setPendingStepGoal(dailyStepGoal);
+                    setGoalDialogOpen(true)
+                }}>
+                    Change Goal
+                </Button>
               </div>
-              <Button variant="outline" size="sm" onClick={() => {
-                setPendingStepGoal(dailyStepGoal);
-                setGoalDialogOpen(true)
-              }}>
-                Change Goal
-              </Button>
+              <div className="text-center">
+                  <span className="text-4xl font-bold text-primary">{steps?.toLocaleString() ?? 0}</span>
+                  <span className="text-sm text-muted-foreground"> / {dailyStepGoal.toLocaleString()}</span>
+              </div>
             </CardHeader>
             <CardContent>
-              <StepProgressBar progress={stepProgress} />
-              <div className="mt-2 flex justify-between text-xs text-muted-foreground">
-                 <span>{steps?.toLocaleString() ?? 0} / {dailyStepGoal.toLocaleString()}</span>
-                <span>{Math.round(stepProgress)}%</span>
-              </div>
+              <StepStaircase progress={stepProgress} />
             </CardContent>
           </Card>
           <Card className="bg-secondary/50">
@@ -406,3 +412,5 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     </>
   );
 }
+
+    
