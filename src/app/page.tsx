@@ -19,6 +19,7 @@ import AdBanner from '@/components/ad-banner';
 import FooterAdBanner from '@/components/footer-ad-banner';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
+import AdminPage from './admin/page';
 
 // This now represents the "logged-in" user's ID for the session.
 const LOGGED_IN_USER_ID = 'patient@example.com';
@@ -51,13 +52,6 @@ export default function Home() {
   const { user, isAdmin, loading } = useAuth();
 
   useEffect(() => {
-    // If the user is an admin, redirect them to the admin page.
-    // This is a temporary measure for developer review.
-    if (!loading && isAdmin) {
-      router.push('/admin');
-      return;
-    }
-    
     // SIMULATE AUTH CHECK: Check if the user still exists in our mock database.
     const userRecord = MOCK_USERS[LOGGED_IN_USER_ID as keyof typeof MOCK_USERS];
     const clinicRecord = MOCK_CLINICS[USER_CLINIC_ID as keyof typeof MOCK_CLINICS];
@@ -118,7 +112,7 @@ export default function Home() {
   }, [isAdmin, loading, router]);
 
 
-  if (loading || isAdmin) {
+  if (loading) {
       return (
          <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
             <div className="w-full max-w-lg space-y-4 m-4">
@@ -132,6 +126,12 @@ export default function Home() {
             </div>
         </div>
       );
+  }
+
+  // If the user is an admin, render the admin page directly.
+  // This is a temporary measure for developer review.
+  if (isAdmin) {
+    return <AdminPage />;
   }
 
   // Render a "logged out" or "access revoked" state if the user has been deleted.
