@@ -442,7 +442,12 @@ export default function AdminPanel() {
     }
     setIsCreatingClinic(true);
     try {
-      const result = await createClinic(newClinic);
+      // Ensure capacity is a number before sending
+      const clinicPayload = {
+        ...newClinic,
+        capacity: Number(newClinic.capacity) || 0,
+      };
+      const result = await createClinic(clinicPayload);
       toast({
         title: 'Clinic Created Successfully!',
         description: result.message,
