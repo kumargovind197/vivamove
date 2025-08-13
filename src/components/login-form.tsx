@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
-import { useAuth } from '@/app/auth-provider';
 
 export default function LoginForm() {
   const [identifier, setIdentifier] = useState('');
@@ -18,22 +17,22 @@ export default function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { refreshUser } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      // We attempt to sign in, but since pages are public, this won't gate content.
+      // This is for demonstration purposes.
       await signInWithEmailAndPassword(auth, identifier, password);
-      // The redirect logic is now handled by the login page and auth provider
-      // We just need to trigger a refresh of the user claims
-      await refreshUser();
       
       toast({
-        title: "Login Successful",
-        description: `Redirecting...`,
+        title: "Login Attempted",
+        description: `Since pages are public, you are being redirected to the Admin panel.`,
       });
+      // In this reverted state, we just redirect to admin as a default action.
+      router.push('/admin');
 
     } catch (error: any) {
        console.error("Login Error:", error);

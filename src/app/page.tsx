@@ -8,9 +8,6 @@ import NotificationManager from '@/components/notification-manager';
 import DataCards from '@/components/data-cards';
 import AdBanner from '@/components/ad-banner';
 import FooterAdBanner from '@/components/footer-ad-banner';
-import { useAuth } from './auth-provider';
-import { getFirestore, doc, getDoc, collection, getDocs } from 'firebase/firestore';
-import { useRouter } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Ad = {
@@ -27,10 +24,14 @@ type ClinicData = {
     adsEnabled: boolean;
 }
 
-export default function Home() {
-  const { user, userClaims, loading } = useAuth();
-  const router = useRouter();
+// Mock user for development since login is disabled
+const mockPatientUser = {
+  uid: 'mock-patient-id',
+  email: 'patient@example.com',
+  displayName: 'John Doe',
+};
 
+export default function Home() {
   const [dailyStepGoal, setDailyStepGoal] = useState(8000);
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: null, activeMinutes: null });
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
@@ -40,68 +41,48 @@ export default function Home() {
   const [popupAdContent, setPopupAdContent] = useState<Ad | null>(null);
   const [footerAdContent, setFooterAdContent] = useState<Ad | null>(null);
   
-  const [isLoadingClinic, setIsLoadingClinic] = useState(true);
-
-  const clinicId = userClaims?.clinicId as string | undefined;
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (loading) return;
-    
-    // Redirect non-patients or non-logged-in users
-    if (!user) {
-        setTimeout(() => router.push('/login'), 0);
-        return;
-    }
-    // if user is admin or clinic, redirect them away from patient view
-    if (userClaims?.admin) {
-        setTimeout(() => router.push('/admin'), 0);
-        return;
-    }
-     if (userClaims?.clinic) {
-        setTimeout(() => router.push('/clinic'), 0);
-        return;
-    }
+    // Simulate loading data now that auth is removed
+    setIsLoading(true);
 
-    const fetchClinicAndAdData = async () => {
-        if (!clinicId) {
-             setIsLoadingClinic(false);
-             return;
-        }
-
-        const db = getFirestore();
-        const clinicRef = doc(db, 'clinics', clinicId);
-        const clinicSnap = await getDoc(clinicRef);
-        
-        if (clinicSnap.exists()) {
-            const data = clinicSnap.data() as Omit<ClinicData, 'id'>;
-            const currentClinicData = { id: clinicSnap.id, ...data };
-            setClinicData(currentClinicData);
-
-            if (currentClinicData.adsEnabled) {
-                // Using mock ads since local storage may not be available or populated
-                const popupAds: Ad[] = JSON.parse(localStorage.getItem('popupAds') || '[]');
-                const footerAds: Ad[] = JSON.parse(localStorage.getItem('footerAds') || '[]');
-
-                if (popupAds.length > 0) {
-                    const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
-                    setPopupAdContent(randomAd);
-                    setShowPopupAd(true);
-                }
-                
-                if (footerAds.length > 0) {
-                    const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
-                    setFooterAdContent(randomAd);
-                    setShowFooterAd(true);
-                }
-            }
-        }
-        setIsLoadingClinic(false);
+    // Simulate fetching clinic data
+    const mockClinic: ClinicData = {
+        id: 'mock-clinic-id',
+        name: 'Wellness Clinic',
+        logo: 'https://placehold.co/200x80.png',
+        adsEnabled: true,
     };
+    setClinicData(mockClinic);
 
-    fetchClinicAndAdData();
-  }, [user, clinicId, loading, router, userClaims]);
+    if (mockClinic.adsEnabled) {
+        // Using mock ads since there's no live data fetch
+        const mockPopupAd: Ad = {
+            id: 'popup1',
+            imageUrl: 'https://placehold.co/400x300.png',
+            description: 'A sample pop-up ad',
+            targetUrl: 'https://example.com'
+        };
+        const mockFooterAd: Ad = {
+            id: 'footer1',
+            imageUrl: 'https://placehold.co/728x90.png',
+            description: 'A sample footer ad',
+            targetUrl: 'https://example.com'
+        };
+        
+        setPopupAdContent(mockPopupAd);
+        setShowPopupAd(true);
+        setFooterAdContent(mockFooterAd);
+        setShowFooterAd(true);
+    }
+    
+    // End loading after a short delay
+    setTimeout(() => setIsLoading(false), 500);
 
-  if (loading || isLoadingClinic) {
+  }, []);
+
+  if (isLoading) {
      return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center">
             <div className="p-8 space-y-4 w-full max-w-4xl">
@@ -121,18 +102,14 @@ export default function Home() {
     );
   }
 
-  if (!user) {
-      return null; // Render nothing while redirecting
-  }
-
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <AppHeader user={user} clinic={clinicData} view="client" />
+      <AppHeader user={mockPatientUser as any} clinic={clinicData} view="client" />
       <main className="flex-1">
-        <DataCards user={user} onDataFetched={setFitData} />
-        <ClientDashboard user={user} fitData={fitData} dailyStepGoal={dailyStepGoal} onStepGoalChange={setDailyStepGoal} view="client" clinic={clinicData}/>
+        <DataCards user={mockPatientUser as any} onDataFetched={setFitData} />
+        <ClientDashboard user={mockPatientUser as any} fitData={fitData} dailyStepGoal={dailyStepGoal} onStepGoalChange={setDailyStepGoal} view="client" clinic={clinicData}/>
         <MessageInbox />
-        <NotificationManager user={user} currentSteps={fitData.steps} dailyStepGoal={dailyStepGoal}/>
+        <NotificationManager user={mockPatientUser as any} currentSteps={fitData.steps} dailyStepGoal={dailyStepGoal}/>
         <AdBanner isPopupVisible={showPopupAd} adContent={popupAdContent} />
       </main>
       <FooterAdBanner isVisible={showFooterAd} adContent={footerAdContent} />

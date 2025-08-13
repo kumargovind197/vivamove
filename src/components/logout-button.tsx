@@ -16,15 +16,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { LogOut } from 'lucide-react';
 import { auth } from '@/lib/firebase';
-import { useAuth } from '@/app/auth-provider';
 
 export default function LogoutButton() {
   const router = useRouter();
-  const { setUser } = useAuth();
 
   const handleLogout = async () => {
     await auth.signOut();
-    setUser(null); // Clear user state from provider
     router.push('/login');
   };
 
@@ -40,7 +37,7 @@ export default function LogoutButton() {
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
           <AlertDialogDescription>
-            You will be returned to the login page. Any unsaved changes may be lost.
+            You will be returned to the login page.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

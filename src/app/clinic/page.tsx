@@ -1,11 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/app-header';
 import PatientManagement from '@/components/patient-management';
-import { useAuth } from '@/app/auth-provider';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type ClinicData = {
@@ -14,46 +11,36 @@ type ClinicData = {
     logo: string;
 }
 
+// Mock user for development purposes
+const mockClinicUser = {
+  uid: 'mock-clinic-id',
+  email: 'clinic@example.com',
+  displayName: 'Clinic User',
+};
+
+// Mock clinic ID for development
+const MOCK_CLINIC_ID = 'YOUR_MOCK_CLINIC_ID'; // Replace with a relevant mock ID if needed
+
 export default function ClinicPage() {
-  const { user, userClaims, loading } = useAuth();
-  const router = useRouter();
-  
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
   const [isLoadingClinic, setIsLoadingClinic] = useState(true);
 
-  const hasClinicRole = userClaims?.clinic === true;
-  const clinicId = userClaims?.clinicId as string | undefined;
-
+  // In this public version, we'll just use mock data.
   useEffect(() => {
-    if (loading) return; // Wait for auth to finish loading
-    
-    if (!user || !hasClinicRole || !clinicId) {
-       setTimeout(() => router.push('/login'), 0);
-       return;
-    }
-    
-    const fetchClinicData = async () => {
-        setIsLoadingClinic(true);
-        const db = getFirestore();
-        const clinicRef = doc(db, 'clinics', clinicId);
-        const clinicSnap = await getDoc(clinicRef);
-        if (clinicSnap.exists()) {
-            const data = clinicSnap.data();
-            setClinicData({
-                id: clinicSnap.id,
-                name: data.name,
-                logo: data.logo
-            });
-        }
-        setIsLoadingClinic(false);
-    };
-
-    fetchClinicData();
-    
-  }, [user, hasClinicRole, clinicId, loading, router]);
+    setIsLoadingClinic(true);
+    // Simulate fetching clinic data
+    setTimeout(() => {
+      setClinicData({
+        id: MOCK_CLINIC_ID,
+        name: "Test Clinic",
+        logo: "https://placehold.co/200x80.png"
+      });
+      setIsLoadingClinic(false);
+    }, 500);
+  }, []);
 
 
-  if (loading || isLoadingClinic) {
+  if (isLoadingClinic) {
      return (
         <div className="flex min-h-screen w-full flex-col items-center justify-center">
             <div className="p-8 space-y-4">
@@ -64,21 +51,13 @@ export default function ClinicPage() {
         </div>
     );
   }
-
-  if (!user || !hasClinicRole) {
-     return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center">
-            <p>Access Denied. You must be a clinic user to view this page.</p>
-            <p>Redirecting to login...</p>
-        </div>
-    );
-  }
   
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <AppHeader user={user} view="clinic" clinic={clinicData}/>
+      <AppHeader user={mockClinicUser as any} view="clinic" clinic={clinicData}/>
       <main className="flex-1">
-       {clinicId && <PatientManagement clinicId={clinicId} />}
+       {/* In a real app, you would pass a real clinicId */}
+       <PatientManagement clinicId={MOCK_CLINIC_ID} />
       </main>
     </div>
   );
