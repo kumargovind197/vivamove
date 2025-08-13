@@ -7,6 +7,7 @@ import { auth } from '@/lib/firebase';
 import AppHeader from '@/components/app-header';
 import AdminPanel from '@/components/admin-panel';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 
 export default function AdminPage() {
   const [user, setUser] = useState<any | null>(null);
