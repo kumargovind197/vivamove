@@ -64,14 +64,14 @@ type ClientDashboardProps = {
 // New Segmented Staircase Progress Bar Component
 const StepStaircase = ({ progress }: { progress: number }) => {
     const milestones = [
-        { threshold: 0, color: 'bg-red-500', height: 'h-1/4', align: 'items-end' },
-        { threshold: 30, color: 'bg-amber-500', height: 'h-2/4', align: 'items-end' },
-        { threshold: 60, color: 'bg-yellow-400', height: 'h-3/4', align: 'items-end' },
-        { threshold: 80, color: 'bg-green-500', height: 'h-full', align: 'items-end' },
+        { threshold: 0, color: 'bg-red-500', height: 'h-1/4' },
+        { threshold: 30, color: 'bg-amber-500', height: 'h-2/4' },
+        { threshold: 60, color: 'bg-yellow-400', height: 'h-3/4' },
+        { threshold: 80, color: 'bg-green-500', height: 'h-full' },
     ];
 
     return (
-        <div className="flex w-full h-full min-h-[60px] gap-2 items-end">
+        <div className="flex w-full min-h-[60px] items-end gap-2">
             {milestones.map((milestone, index) => {
                 const isCompleted = progress > milestone.threshold;
                 const isActive = progress > milestone.threshold && (progress <= (milestones[index + 1]?.threshold ?? 101));
@@ -80,16 +80,15 @@ const StepStaircase = ({ progress }: { progress: number }) => {
                 const isLastStepActive = index === 3 && progress >= 80;
 
                 return (
-                    <div key={index} className={cn("flex w-1/4 h-full", milestone.align)}>
-                        <div
-                            className={cn(
-                                "w-full rounded-md transition-all duration-500",
-                                isCompleted ? milestone.color : 'bg-muted',
-                                milestone.height,
-                                (isActive || isLastStepActive) && 'animate-pulse-bright'
-                            )}
-                        />
-                    </div>
+                    <div
+                        key={index}
+                        className={cn(
+                            "w-1/4 rounded-md transition-all duration-500",
+                            isCompleted ? milestone.color : 'bg-muted',
+                            milestone.height,
+                            (isActive || isLastStepActive) && 'animate-pulse-bright'
+                        )}
+                    />
                 );
             })}
         </div>
