@@ -2,6 +2,7 @@
 "use client";
 
 import AppFooter from '@/components/app-footer';
+import { Toaster } from './ui/toaster';
 
 export default function ClientLayout({
   children,
@@ -24,6 +25,7 @@ export default function ClientLayout({
         </main>
         <AppFooter />
       </div>
+      <Toaster />
     </>
   );
 }
