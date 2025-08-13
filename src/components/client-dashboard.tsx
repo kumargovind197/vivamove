@@ -61,6 +61,29 @@ type ClientDashboardProps = {
   clinic: Clinic | null;
 };
 
+const stepMilestones = [
+  { name: '25%', goal: 0.25, color: 'bg-red-500', align: 'items-end' },
+  { name: '50%', goal: 0.50, color: 'bg-amber-500', align: 'items-center' },
+  { name: '75%', goal: 0.75, color: 'bg-yellow-500', align: 'items-start' },
+  { name: '100%', goal: 1.0, color: 'bg-green-500', align: 'items-start' }
+];
+
+const StepStaircase = ({ progress }: { progress: number }) => (
+    <div className="flex h-20 w-full items-end gap-2 rounded-lg bg-muted p-2">
+      {stepMilestones.map((step, index) => {
+        const isAchieved = progress >= (step.goal * 100);
+        return (
+          <div key={step.name} className={`flex w-1/4 flex-col justify-between rounded-md p-1 ${isAchieved ? `${step.color} animate-pulse-bright` : 'bg-muted-foreground/20'}`}>
+            <div className={`flex w-full ${step.align}`}>
+              {isAchieved && <Footprints className="h-5 w-5 text-white/80" />}
+            </div>
+            <div className="text-right text-xs font-bold text-white/90">{step.name}</div>
+          </div>
+        );
+      })}
+    </div>
+);
+
 export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGoalChange, view, clinic }: ClientDashboardProps) {
   const [isGoalDialogOpen, setGoalDialogOpen] = useState(false);
   const [pendingStepGoal, setPendingStepGoal] = useState(dailyStepGoal);
@@ -219,10 +242,7 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
              <CardHeader>
                 <div className="flex flex-row items-start justify-between pb-2">
                     <div className="flex flex-col gap-1">
-                        <CardTitle className="flex items-center gap-2">
-                            <Footprints className="h-6 w-6 text-muted-foreground" />
-                            <span>Daily Steps</span>
-                        </CardTitle>
+                        <CardTitle>Daily Steps</CardTitle>
                         <CardDescription>
                           Your goal is {dailyStepGoal.toLocaleString()} steps today.
                         </CardDescription>
@@ -239,8 +259,8 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
                     <span className="text-sm text-muted-foreground"> / {dailyStepGoal.toLocaleString()}</span>
                 </div>
             </CardHeader>
-            <CardContent className="flex items-center justify-center">
-              <ProgressRing progress={stepProgress} color={getRingColor(stepProgress)} trackColor="hsl(var(--muted))" />
+            <CardContent>
+               <StepStaircase progress={stepProgress} />
             </CardContent>
           </Card>
           <Card className="bg-secondary/50">
@@ -252,6 +272,10 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
               <CardDescription>
                 Your goal is {DAILY_MINUTE_GOAL} active minutes today.
               </CardDescription>
+               <div className="text-center">
+                    <span className="text-4xl font-bold text-primary">{activeMinutes?.toLocaleString() ?? 0}</span>
+                    <span className="text-sm text-muted-foreground"> / {DAILY_MINUTE_GOAL}</span>
+                </div>
             </CardHeader>
             <CardContent className="flex items-center justify-center">
               <ProgressRing progress={minuteProgress} color={getRingColor(minuteProgress)} trackColor="hsl(var(--muted))" />
@@ -377,3 +401,5 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
     </>
   );
 }
+
+    
