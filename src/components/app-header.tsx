@@ -6,8 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
-import { useAuth } from '@/hooks/useAuth';
 
 type Clinic = {
     id: string;
@@ -212,18 +212,25 @@ type AppHeaderProps = {
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
-  const { isAdmin, isClinic } = useAuth(); // Use the hook to get verified roles
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isClinic, setIsClinic] = useState(false);
 
   useEffect(() => {
-    // This function will run on the client side after the component mounts
     const savedLogo = localStorage.getItem('vivaMoveLogo');
     if (savedLogo) {
       setVivaMoveLogo(savedLogo);
     } else {
-      // If no saved logo, set the default SVG component
       setDefaultVivaMoveLogo(<VivaMoveLogo className="h-8 w-auto" />);
     }
-  }, []);
+    
+    if (user) {
+        user.getIdTokenResult().then(tokenResult => {
+            setIsAdmin(!!tokenResult.claims.admin);
+            setIsClinic(!!tokenResult.claims.clinic);
+        })
+    }
+
+  }, [user]);
 
   const renderClientBranding = () => {
     if (clinic && clinic.logo) {
@@ -245,7 +252,6 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
         </div>
       );
     }
-    // Default icon for non-enrolled users
     return (
       <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted">
         <ShieldQuestion className="h-6 w-6 text-muted-foreground" />
@@ -267,7 +273,6 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
             />
         );
     }
-    // Default icon for non-enrolled users
     return (
         <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted">
             <ShieldQuestion className="h-6 w-6 text-muted-foreground"/>
@@ -325,7 +330,6 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                 </div>
              </div>
             
-            {/* --- DEVELOPER NAVIGATION BUTTONS --- */}
             <div className="flex items-center gap-2">
               {view !== 'client' && user && (
                 <Button asChild variant="outline">

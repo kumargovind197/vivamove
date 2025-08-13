@@ -1,19 +1,54 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/app-header';
 import AdminPanel from '@/components/admin-panel';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { ShieldOff, ShieldCheck } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ShieldOff } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { auth } from '@/lib/firebase';
+import type { User } from 'firebase/auth';
 
 export default function AdminPage() {
-  const { user, isAdmin, loading } = useAuth();
+  const [user, setUser] = useState<User | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in.
+        try {
+          const tokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh
+          if (tokenResult.claims.admin) {
+            setUser(firebaseUser);
+            setIsAdmin(true);
+          } else {
+            // User is not an admin, deny access.
+            setUser(null);
+            setIsAdmin(false);
+            router.push('/'); // Redirect non-admins away
+          }
+        } catch (error) {
+          console.error("Error fetching user token:", error);
+          setIsAdmin(false);
+          setUser(null);
+        }
+      } else {
+        // User is signed out.
+        setIsAdmin(false);
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, [router]);
 
   if (loading) {
     return (
@@ -34,7 +69,6 @@ export default function AdminPage() {
     );
   }
 
-  // If loading is finished and the user is not an admin (or not logged in)
   if (!isAdmin) {
     return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
@@ -46,9 +80,9 @@ export default function AdminPage() {
                   </CardTitle>
               </CardHeader>
               <CardContent>
-                  <p className="text-muted-foreground">You do not have the necessary permissions to view this page. This area is for administrators only.</p>
-                   <Button onClick={() => router.push('/')} className="mt-6 w-full">
-                      Return to Homepage
+                  <p className="text-muted-foreground">You do not have the necessary permissions to view this page. Please log in with an administrator account.</p>
+                   <Button onClick={() => router.push('/login')} className="mt-6 w-full">
+                      Return to Login
                   </Button>
               </CardContent>
           </Card>
@@ -56,7 +90,6 @@ export default function AdminPage() {
     );
   }
   
-  // Standard view for logged-in admins
   return (
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader user={user} view="admin" clinic={null} />

@@ -8,6 +8,7 @@ import ClientDashboard from '@/components/client-dashboard';
 import MessageInbox from '@/components/message-inbox';
 import NotificationManager from '@/components/notification-manager';
 import DataCards from '@/components/data-cards';
+import { auth } from '@/lib/firebase';
 import type { User } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, LogIn } from 'lucide-react';
@@ -15,7 +16,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import AdBanner from '@/components/ad-banner';
 import FooterAdBanner from '@/components/footer-ad-banner';
-import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
@@ -31,7 +31,6 @@ type ClinicData = {
     name: string;
     logo: string;
     adsEnabled: boolean;
-    // Add other fields as necessary
 }
 
 export default function Home() {
@@ -39,14 +38,31 @@ export default function Home() {
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: null, activeMinutes: null });
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
   
-  // States for controlling ad visibility
   const [showPopupAd, setShowPopupAd] = useState(false);
   const [showFooterAd, setShowFooterAd] = useState(false);
   const [popupAdContent, setPopupAdContent] = useState<Ad | null>(null);
   const [footerAdContent, setFooterAdContent] = useState<Ad | null>(null);
 
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [clinicId, setClinicId] = useState<string | null>(null);
   const router = useRouter();
-  const { user, loading, clinicId } = useAuth();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+        if (firebaseUser) {
+            setUser(firebaseUser);
+            const tokenResult = await firebaseUser.getIdTokenResult();
+            setClinicId(tokenResult.claims.clinicId as string || null);
+        } else {
+            setUser(null);
+            setClinicId(null);
+        }
+        setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
 
   useEffect(() => {
     if (loading || !user) {
