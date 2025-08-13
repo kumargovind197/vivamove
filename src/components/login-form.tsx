@@ -43,8 +43,8 @@ export default function LoginForm() {
         // This event tells the useAuth hook to re-evaluate the user
         window.dispatchEvent(new Event('storage'));
         
-        // THIS IS THE FIX: Explicitly check for the admin email for redirection
-        if (lowerCaseIdentifier === ADMIN_EMAIL) {
+        // ** THE FIX **: Prioritize the admin redirect.
+        if (lowerCaseIdentifier === ADMIN_EMAIL.toLowerCase()) {
             router.push('/admin');
         } else {
             router.push(mockUserData.redirect || '/');
