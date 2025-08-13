@@ -211,9 +211,8 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
   
-  // Since security is removed, we can define roles based on view for UI purposes
-  const isClinic = view === 'clinic';
-  const isAdmin = view === 'admin';
+  const hasAdminRole = view === 'admin';
+  const hasClinicRole = view === 'clinic';
 
   useEffect(() => {
     const savedLogo = localStorage.getItem('vivaMoveLogo');
@@ -323,30 +322,33 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
              </div>
             
             <div className="flex items-center gap-2">
-              {view !== 'client' && user && (
-                <Button asChild variant="outline">
-                    <Link href="/">
-                        <UserCircle className="mr-2 h-4 w-4" />
-                        <span>Client View</span>
-                    </Link>
-                </Button>
-              )}
-              {view !== 'clinic' && isClinic && (
-                <Button asChild variant="outline">
-                    <Link href="/clinic">
-                        <Hospital className="mr-2 h-4 w-4" />
-                        <span>Clinic View</span>
-                    </Link>
-                </Button>
-              )}
-              {view !== 'admin' && isAdmin && (
-                <Button asChild variant="outline">
-                    <Link href="/admin">
-                        <Wrench className="mr-2 h-4 w-4" />
-                        <span>Admin</span>
-                    </Link>
-                </Button>
-              )}
+                {/* Always show client view button when not in client view */}
+                {view !== 'client' && (
+                    <Button asChild variant="outline">
+                        <Link href="/">
+                            <UserCircle className="mr-2 h-4 w-4" />
+                            <span>Client View</span>
+                        </Link>
+                    </Button>
+                )}
+                {/* In Admin view, show Clinic view button */}
+                {view === 'admin' && (
+                    <Button asChild variant="outline">
+                        <Link href="/clinic">
+                            <Hospital className="mr-2 h-4 w-4" />
+                            <span>Clinic View</span>
+                        </Link>
+                    </Button>
+                )}
+                {/* In Clinic view, show Admin view button */}
+                {view === 'clinic' && (
+                    <Button asChild variant="outline">
+                        <Link href="/admin">
+                            <Wrench className="mr-2 h-4 w-4" />
+                            <span>Admin</span>
+                        </Link>
+                    </Button>
+                )}
             </div>
 
           </div>
