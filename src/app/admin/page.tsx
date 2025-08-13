@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import AppHeader from '@/components/app-header';
 import AdminPanel from '@/components/admin-panel';
 import { Button } from '@/components/ui/button';
 import { ShieldOff, Loader2 } from 'lucide-react';
@@ -17,31 +16,33 @@ export default function AdminPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
       if (firebaseUser) {
-        // User is logged in, now check for admin claim
-        try {
-          const idTokenResult = await firebaseUser.getIdTokenResult(true); // Force refresh
-          if (idTokenResult.claims.admin) {
-            setUser(firebaseUser);
-            setIsAdmin(true);
-          } else {
-            // Logged in but not an admin
+        // User is logged in, check for admin claim
+        firebaseUser.getIdTokenResult(true) // Force refresh the token
+          .then((idTokenResult) => {
+            if (idTokenResult.claims.admin) {
+              setUser(firebaseUser);
+              setIsAdmin(true);
+            } else {
+              // Not an admin
+              setUser(firebaseUser);
+              setIsAdmin(false);
+            }
+            setLoading(false);
+          })
+          .catch((error) => {
+            console.error("Error fetching user claims:", error);
             setUser(firebaseUser);
             setIsAdmin(false);
-          }
-        } catch (error) {
-          console.error("Error fetching user claims:", error);
-          setUser(firebaseUser);
-          setIsAdmin(false);
-        }
+            setLoading(false);
+          });
       } else {
-        // User is not logged in
+        // User is not logged in, redirect to login
         setUser(null);
         setIsAdmin(false);
-        router.push('/login'); // Redirect immediately if not logged in
+        router.push('/login');
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -89,7 +90,6 @@ export default function AdminPage() {
   // At this point, user is confirmed to be an admin
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <AppHeader user={user} view="admin" clinic={null} />
       <main className="flex-1">
         <AdminPanel />
       </main>
