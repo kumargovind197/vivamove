@@ -1,22 +1,14 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import AppHeader from '@/components/app-header';
 import ClientDashboard from '@/components/client-dashboard';
 import MessageInbox from '@/components/message-inbox';
 import NotificationManager from '@/components/notification-manager';
 import DataCards from '@/components/data-cards';
-import { useAuth } from '@/hooks/useAuth.tsx';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, LogIn } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
 import AdBanner from '@/components/ad-banner';
 import FooterAdBanner from '@/components/footer-ad-banner';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import type { User } from 'firebase/auth';
 
 type Ad = {
   id: string;
@@ -32,6 +24,34 @@ type ClinicData = {
     adsEnabled: boolean;
 }
 
+// Mock user since security is removed
+const mockPatientUser: User = {
+  uid: 'mock-patient-id',
+  email: 'patient@example.com',
+  displayName: 'John Doe',
+  photoURL: null,
+  providerId: 'password',
+  emailVerified: true,
+  isAnonymous: false,
+  metadata: {},
+  providerData: [],
+  tenantId: null,
+  delete: async () => {},
+  getIdToken: async () => 'mock-token',
+  getIdTokenResult: async () => ({
+    token: 'mock-token',
+    expirationTime: '',
+    authTime: '',
+    issuedAtTime: '',
+    signInProvider: null,
+    signInSecondFactor: null,
+    claims: { patient: true, clinicId: 'mock-clinic-id' },
+  }),
+  reload: async () => {},
+  toJSON: () => ({}),
+};
+
+
 export default function Home() {
   const [dailyStepGoal, setDailyStepGoal] = useState(8000);
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: null, activeMinutes: null });
@@ -42,105 +62,35 @@ export default function Home() {
   const [popupAdContent, setPopupAdContent] = useState<Ad | null>(null);
   const [footerAdContent, setFooterAdContent] = useState<Ad | null>(null);
   
-  const { user, clinicId, loading } = useAuth();
-  const router = useRouter();
+  const user = mockPatientUser; // Use mock user
 
   useEffect(() => {
-    if (loading || !user) {
-        return;
-    }
+    // This logic now runs for the mock user
+    const fetchClinicAndAdData = () => {
+        const mockClinicData = {id: "mock-clinic-id", name: "Wellness Clinic", logo: "https://placehold.co/200x80.png", adsEnabled: true};
+        setClinicData(mockClinicData);
 
-    const fetchClinicData = async () => {
-        if (!clinicId) {
-            setClinicData(null);
-            setShowPopupAd(false);
-            setShowFooterAd(false);
-            return;
-        }
+        if (mockClinicData.adsEnabled) {
+            // Using mock ads since local storage may not be available or populated
+            const popupAds: Ad[] = [{id: '1', imageUrl: 'https://placehold.co/400x300.png', description: 'ad', targetUrl: '#'}];
+            const footerAds: Ad[] = [{id: '1', imageUrl: 'https://placehold.co/728x90.png', description: 'ad', targetUrl: '#'}];
 
-        const db = getFirestore();
-        const clinicRef = doc(db, "clinics", clinicId);
-        const clinicSnap = await getDoc(clinicRef);
-
-        if (clinicSnap.exists()) {
-            const data = clinicSnap.data() as ClinicData;
-            setClinicData(data);
-
-            if (data.adsEnabled) {
-                const savedPopupAds = localStorage.getItem('popupAds');
-                const savedFooterAds = localStorage.getItem('footerAds');
-                const popupAds: Ad[] = savedPopupAds ? JSON.parse(savedPopupAds) : [];
-                const footerAds: Ad[] = savedFooterAds ? JSON.parse(savedFooterAds) : [];
-
-                if (popupAds.length > 0) {
-                    const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
-                    setPopupAdContent(randomAd);
-                    setShowPopupAd(true);
-                } else {
-                    setShowPopupAd(false);
-                }
-                
-                if (footerAds.length > 0) {
-                    const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
-                    setFooterAdContent(randomAd);
-                    setShowFooterAd(true);
-                } else {
-                    setShowFooterAd(false);
-                }
-            } else {
-                setShowPopupAd(false);
-                setShowFooterAd(false);
+            if (popupAds.length > 0) {
+                const randomAd = popupAds[Math.floor(Math.random() * popupAds.length)];
+                setPopupAdContent(randomAd);
+                setShowPopupAd(true);
             }
-        } else {
-            console.log("No such clinic document!");
-            setClinicData(null);
+            
+            if (footerAds.length > 0) {
+                const randomAd = footerAds[Math.floor(Math.random() * footerAds.length)];
+                setFooterAdContent(randomAd);
+                setShowFooterAd(true);
+            }
         }
     };
 
-    fetchClinicData();
-
-  }, [user, loading, clinicId, router]);
-
-
-  if (loading) {
-      return (
-         <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-            <div className="w-full max-w-lg space-y-4 m-4">
-              <Skeleton className="h-12 w-3/4" />
-              <Skeleton className="h-8 w-1/2" />
-              <div className="grid grid-cols-2 gap-4">
-                  <Skeleton className="h-40 w-full" />
-                  <Skeleton className="h-40 w-full" />
-              </div>
-               <Skeleton className="h-64 w-full" />
-            </div>
-        </div>
-      );
-  }
-  
-  if (!user) {
-      return (
-        <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background">
-            <Card className="w-full max-w-md m-4">
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                        <AlertTriangle className="text-destructive"/>
-                        Access Denied
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground">You must be logged in to view this page. Please log in to continue.</p>
-                     <Button asChild className="mt-6 w-full">
-                        <Link href="/login">
-                            <LogIn className="mr-2" />
-                            Return to Login
-                        </Link>
-                    </Button>
-                </CardContent>
-            </Card>
-        </div>
-      );
-  }
+    fetchClinicAndAdData();
+  }, []);
 
   return (
     <div className="flex min-h-screen w-full flex-col">

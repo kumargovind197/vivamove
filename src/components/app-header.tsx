@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -6,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth.tsx';
 import type { User } from 'firebase/auth';
 
 type Clinic = {
@@ -212,8 +210,11 @@ type AppHeaderProps = {
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
   const [defaultVivaMoveLogo, setDefaultVivaMoveLogo] = useState<React.ReactNode | null>(null);
-  const { isAdmin, isClinic } = useAuth();
   
+  // Since security is removed, we can define roles based on view for UI purposes
+  const isClinic = view === 'clinic';
+  const isAdmin = view === 'admin';
+
   useEffect(() => {
     const savedLogo = localStorage.getItem('vivaMoveLogo');
     if (savedLogo) {
