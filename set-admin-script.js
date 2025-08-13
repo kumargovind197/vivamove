@@ -1,3 +1,4 @@
+
 // This is a standalone script to be run from your local machine's terminal.
 // It is NOT part of the Next.js application.
 //
@@ -22,7 +23,7 @@ const admin = require('firebase-admin');
 
 // --- IMPORTANT ---
 // **UPDATE THIS EMAIL ADDRESS** with the user you want to make an admin.
-const userEmail = "REPLACE_WITH_YOUR_EMAIL@example.com";
+const userEmail = "vinitkiranshah@gmail.com";
 // -----------------
 
 
