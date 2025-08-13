@@ -8,12 +8,18 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import * as admin from 'firebase-admin';
+import { serviceAccount } from '@/lib/service-account';
+
 
 // Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
+  try {
     admin.initializeApp({
-      credential: admin.credential.applicationDefault(),
+      credential: admin.credential.cert(serviceAccount),
     });
+  } catch (e) {
+    console.error('Firebase admin initialization error', e);
+  }
 }
 
 const PatientDataSchema = z.object({
