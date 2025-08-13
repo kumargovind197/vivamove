@@ -64,14 +64,14 @@ type ClientDashboardProps = {
 // New Segmented Staircase Progress Bar Component
 const StepStaircase = ({ progress }: { progress: number }) => {
     const milestones = [
-        { threshold: 0, color: 'bg-red-500', alignment: 'items-end' },
-        { threshold: 30, color: 'bg-amber-500', alignment: 'items-center' },
-        { threshold: 60, color: 'bg-yellow-400', alignment: 'items-start' },
-        { threshold: 80, color: 'bg-green-500', alignment: 'items-start' },
+        { threshold: 0, color: 'bg-red-500', height: 'h-1/4', align: 'items-end' },
+        { threshold: 30, color: 'bg-amber-500', height: 'h-2/4', align: 'items-end' },
+        { threshold: 60, color: 'bg-yellow-400', height: 'h-3/4', align: 'items-end' },
+        { threshold: 80, color: 'bg-green-500', height: 'h-full', align: 'items-end' },
     ];
 
     return (
-        <div className="flex w-full h-full min-h-[60px] gap-2">
+        <div className="flex w-full h-full min-h-[60px] gap-2 items-end">
             {milestones.map((milestone, index) => {
                 const isCompleted = progress > milestone.threshold;
                 const isActive = progress > milestone.threshold && (progress <= (milestones[index + 1]?.threshold ?? 101));
@@ -80,11 +80,12 @@ const StepStaircase = ({ progress }: { progress: number }) => {
                 const isLastStepActive = index === 3 && progress >= 80;
 
                 return (
-                    <div key={index} className={cn("flex w-1/4", milestone.alignment)}>
+                    <div key={index} className={cn("flex w-1/4 h-full", milestone.align)}>
                         <div
                             className={cn(
-                                "h-1/2 w-full rounded-md transition-all duration-500",
+                                "w-full rounded-md transition-all duration-500",
                                 isCompleted ? milestone.color : 'bg-muted',
+                                milestone.height,
                                 (isActive || isLastStepActive) && 'animate-pulse-bright'
                             )}
                         />
@@ -410,7 +411,5 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
-
-    
