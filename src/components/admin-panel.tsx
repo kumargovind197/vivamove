@@ -435,10 +435,14 @@ export default function AdminPanel() {
     }
     setIsCreatingClinic(true);
     
+    // This is now a CLIENT-SIDE ONLY operation for simplicity and to avoid backend errors.
+    // NOTE: This is NOT secure for a real production app. It requires Firestore rules to be open.
+    // A real app should use a secure Firebase Function (Callable Function).
     try {
         const db = getFirestore();
         const placeholderLogo = 'https://placehold.co/200x80.png';
         
+        // 1. Create the clinic document in Firestore
         const clinicData = {
             name: newClinic.name,
             email: newClinic.email,
@@ -450,29 +454,32 @@ export default function AdminPanel() {
 
         const docRef = await addDoc(collection(db, "clinics"), clinicData);
 
-        // This is a placeholder for creating the auth user and setting claims.
-        // In a real app, you would securely call a backend function.
-        // For this demo, we simulate setting a claim.
-        await setCustomUserClaims(newClinic.email, { clinic: true, clinicId: docRef.id });
+        // 2. Set the custom claim for the user.
+        // This requires a secure backend function. We're calling a Server Action that should wrap a Genkit flow.
+        const claimsResult = await setCustomUserClaims(newClinic.email, { clinic: true, clinicId: docRef.id });
+
+        if (!claimsResult.success) {
+            // If setting claims fails, we should ideally delete the created clinic document to avoid orphaned data.
+            await deleteDoc(doc(db, "clinics", docRef.id));
+            throw new Error(claimsResult.message || 'Failed to set user role.');
+        }
 
         toast({
             title: 'Clinic Created Successfully',
-            description: `Clinic ${newClinic.name} has been added. An auth user needs to be created separately with the same email.`,
+            description: `Clinic ${newClinic.name} has been added. The user role has been set.`,
         });
 
-        setClinics(prevClinics => [...prevClinics, { id: docRef.id, ...clinicData }]);
+        // Add to local state to update UI
+        setClinics(prevClinics => [...prevClinics, { id: docRef.id, ...clinicData, createdAt: new Date() } as any]);
         setCreateClinicDialogOpen(false);
         setNewClinic({ name: '', email: '', logo: '', capacity: 100, adsEnabled: false });
 
     } catch (error: any) {
       console.error("Error creating clinic:", error);
-      const errorMessage = error.code === 'auth/email-already-exists' 
-        ? "An account with this email already exists."
-        : error.message || 'An unexpected error occurred.';
       toast({
         variant: 'destructive',
         title: 'Error Creating Clinic',
-        description: errorMessage,
+        description: error.message || 'An unexpected error occurred.',
       });
     } finally {
       setIsCreatingClinic(false);
@@ -515,14 +522,15 @@ export default function AdminPanel() {
     const clinicRef = doc(db, 'clinics', clinicToDelete.id);
 
     try {
+      // NOTE: This does not delete the associated Firebase Auth user or their claim.
+      // In a production app, this should be handled by a backend function to ensure data consistency.
       await deleteDoc(clinicRef);
-      // NOTE: This does not delete the associated Firebase Auth user.
-      // In a production app, this should be handled by a backend function.
       
       setClinics(prev => prev.filter(c => c.id !== clinicToDelete.id));
       toast({ title: 'Clinic Deleted', description: `${clinicToDelete.name} has been removed.` });
       setClinicToDelete(null);
-      setEditClinicDialogOpen(false); // Close the edit dialog as well
+      // Close the main edit dialog when deletion is confirmed from within it
+      setEditClinicDialogOpen(false); 
     } catch (error: any) {
       console.error("Error deleting clinic:", error);
       toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
@@ -766,7 +774,7 @@ export default function AdminPanel() {
             <DialogHeader>
                 <DialogTitle>Enroll New Clinic</DialogTitle>
                 <DialogDescription>
-                    Set up a new clinic account. This will create a Firestore document. The associated user must be created separately in Firebase Authentication.
+                    Set up a new clinic account. This will create a Firestore document and set the user's role. The user must already exist in Firebase Authentication.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -851,7 +859,7 @@ export default function AdminPanel() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the <strong>{clinicToDelete.name}</strong> clinic record. The associated authentication user will NOT be deleted.
+                                    This action cannot be undone. This will permanently delete the <strong>{clinicToDelete.name}</strong> clinic record. The associated authentication user will NOT be deleted or have their role revoked.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>

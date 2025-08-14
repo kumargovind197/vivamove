@@ -1,14 +1,17 @@
 
 'use server';
 
-// This file is intentionally left with minimal code.
-// The previous server actions were causing persistent errors and have been removed.
-// Logic has been moved to client-side components to ensure app functionality.
+import { createClinicWithUser } from "@/ai/flows/create-clinic-flow";
+import { setAdminRole } from "@/ai/flows/set-admin-role-flow";
 
-export async function placeholderAction() {
-    // This is a placeholder to avoid build errors.
-    console.log("Placeholder action executed.");
-    return { message: "No server actions are currently configured." };
+export async function createClinicAction(clinicData: any) {
+    try {
+        const result = await createClinicWithUser(clinicData);
+        return result;
+    } catch (error) {
+        console.error("Error in createClinicAction:", error);
+        return { success: false, message: (error as Error).message };
+    }
 }
 
 // In a real production app, you would use a secure backend function (like a Firebase Function)
@@ -18,5 +21,16 @@ export async function setCustomUserClaims(email: string, claims: object) {
   // In a real app, you would use the Firebase Admin SDK here.
   // For the purpose of this demo, we'll just log it.
   console.log(`Setting custom claims for ${email}:`, claims);
-  return { success: true, message: `Claims for ${email} would be set here.` };
+  try {
+    await setAdminRole({ email, claims });
+    return { success: true, message: `Claims for ${email} have been set.` };
+  } catch(e) {
+    return { success: false, message: (e as Error).message };
+  }
+}
+
+export async function placeholderAction() {
+    // This is a placeholder to avoid build errors.
+    console.log("Placeholder action executed.");
+    return { message: "No server actions are currently configured." };
 }
