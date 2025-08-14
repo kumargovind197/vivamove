@@ -2,8 +2,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import ClientLayout from '@/components/client-layout';
-import { AuthProvider } from '@/components/auth-provider';
-
 
 export const metadata: Metadata = {
   title: 'ViVa move',
@@ -23,11 +21,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased flex flex-col min-h-screen relative">
-        <AuthProvider>
-            <ClientLayout>
-                {children}
-            </ClientLayout>
-        </AuthProvider>
+          <ClientLayout>
+              {children}
+          </ClientLayout>
       </body>
     </html>
   );

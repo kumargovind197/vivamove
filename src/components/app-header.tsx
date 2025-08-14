@@ -4,9 +4,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
+import { UserCircle, Wrench, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/useAuth';
 import type { ClinicData, MockUser } from '@/lib/types';
 
 
@@ -198,18 +197,14 @@ M1269.5,163
 
 type AppHeaderProps = {
   user: MockUser | null;
-  clinic: ClinicData | null;
+  clinic?: ClinicData | null;
   view: 'client' | 'clinic' | 'admin';
   patientId?: string;
   patientName?: string;
 };
 
 export default function AppHeader({ user, clinic, view, patientId, patientName }: AppHeaderProps) {
-  const { claims } = useAuth();
   const [vivaMoveLogo, setVivaMoveLogo] = useState<string | null>(null);
-  
-  const hasAdminRole = claims?.admin;
-  const hasClinicRole = claims?.clinic;
 
   useEffect(() => {
     // Client-side only check to avoid hydration mismatch
@@ -219,63 +214,37 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
     }
   }, []);
 
-  const renderClientBranding = () => {
-    if (clinic && clinic.logo) {
-      return (
-        <div className="flex items-center gap-4">
-          <div className="w-48 h-12 overflow-hidden rounded-md flex-shrink-0 relative">
-             <Image
-                data-ai-hint="medical logo"
-                src={clinic.logo}
-                alt={`${clinic.name} Logo`}
-                fill
-                className="object-cover"
-                priority
-              />
-          </div>
-          <span className="hidden sm:block font-headline text-xl font-bold text-foreground">
-            {clinic.name}
-          </span>
-        </div>
-      );
-    }
-    return (
-      <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted">
-        <ShieldQuestion className="h-6 w-6 text-muted-foreground" />
-      </div>
-    );
-  };
-
-
-  const renderClinicBranding = () => {
-    if (clinic) {
-        return (
-            <Image
-                data-ai-hint="medical logo"
-                src={clinic.logo}
-                alt={`${clinic.name} Logo`}
-                width={40}
-                height={40}
-                className="rounded-md"
-            />
-        );
-    }
-    return (
-        <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted">
-            <ShieldQuestion className="h-6 w-6 text-muted-foreground"/>
-        </div>
-    );
-  }
-
-  return (
-    <>
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-sm shadow-sm bg-gradient-to-r from-background via-white to-background">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
-          
-          <div className="flex items-center">
-            {view === 'client' && renderClientBranding()}
-            {(view === 'clinic' && !patientId && clinic) && (
-                <Image
+  const renderBranding = () => {
+    switch(view) {
+        case 'client':
+            return clinic ? (
+                 <div className="flex items-center gap-4">
+                    <div className="w-auto h-12 overflow-hidden rounded-md flex-shrink-0 relative">
+                        <Image
+                            data-ai-hint="medical logo"
+                            src={clinic.logo}
+                            alt={`${clinic.name} Logo`}
+                            width={120}
+                            height={48}
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
+                 </div>
+            ) : null;
+        case 'clinic':
+             if (patientId) {
+                return (
+                     <Button asChild variant="outline" size="sm">
+                        <Link href="/clinic">
+                            <ChevronLeft className="mr-2" />
+                            <span>Back to All Patients</span>
+                        </Link>
+                    </Button>
+                )
+             }
+            return clinic ? (
+                 <Image
                     data-ai-hint="medical logo"
                     src={clinic.logo}
                     alt={`${clinic.name} Logo`}
@@ -283,20 +252,26 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
                     height={40}
                     className="rounded-md"
                 />
-            )}
-             {view === 'clinic' && patientId && (
-                <Button asChild variant="outline" size="sm">
-                    <Link href="/clinic">
-                        <ChevronLeft className="mr-2" />
-                        <span>Back to All Patients</span>
-                    </Link>
-                </Button>
-            )}
-             {view === 'admin' && (
+            ) : null;
+        case 'admin':
+            return (
                  <div className="h-10 w-10 flex items-center justify-center rounded-md bg-muted">
                     <Wrench className="h-6 w-6 text-muted-foreground"/>
                 </div>
-            )}
+            )
+        default:
+            return null;
+    }
+  }
+
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-sm shadow-sm bg-gradient-to-r from-background via-white to-background">
+        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+          
+          <div className="flex items-center">
+            {renderBranding()}
              {patientName && (
                  <span className="font-headline text-lg font-semibold text-foreground ml-4">
                     Patient: {patientName}
@@ -318,33 +293,24 @@ export default function AppHeader({ user, clinic, view, patientId, patientName }
              </div>
             
             <div className="flex items-center gap-2">
-                {/* Always show client view button when not in client view */}
-                {view !== 'client' && (
-                    <Button asChild variant="outline">
-                        <Link href="/">
-                            <UserCircle className="mr-2 h-4 w-4" />
-                            <span>Client View</span>
-                        </Link>
-                    </Button>
-                )}
-                
-                {hasAdminRole && view !== 'admin' && (
-                     <Button asChild variant="outline">
-                        <Link href="/admin">
-                            <Wrench className="mr-2 h-4 w-4" />
-                            <span>Admin</span>
-                        </Link>
-                    </Button>
-                )}
-
-                {hasClinicRole && view !== 'clinic' && (
-                    <Button asChild variant="outline">
-                        <Link href="/clinic">
-                            <Hospital className="mr-2 h-4 w-4" />
-                            <span>Clinic View</span>
-                        </Link>
-                    </Button>
-                )}
+                <Button asChild variant={view === 'client' ? 'secondary': 'outline'}>
+                    <Link href="/">
+                        <UserCircle className="mr-2 h-4 w-4" />
+                        <span>Client</span>
+                    </Link>
+                </Button>
+                <Button asChild variant={view === 'clinic' ? 'secondary': 'outline'}>
+                    <Link href="/clinic">
+                        <Hospital className="mr-2 h-4 w-4" />
+                        <span>Clinic</span>
+                    </Link>
+                </Button>
+                <Button asChild variant={view === 'admin' ? 'secondary': 'outline'}>
+                    <Link href="/admin">
+                        <Wrench className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                    </Link>
+                </Button>
             </div>
 
           </div>
