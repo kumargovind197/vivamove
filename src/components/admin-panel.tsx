@@ -786,5 +786,4 @@ export default function AdminPanel() {
     </Dialog>
     </>
   );
-
     
