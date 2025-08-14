@@ -14,7 +14,7 @@ export default function ClinicLoginPage() {
           <h1 className="font-headline text-4xl font-bold text-primary">Clinic Portal</h1>
           <p className="text-muted-foreground">Please sign in to continue</p>
         </div>
-        <LoginForm />
+        <LoginForm redirectTo="/clinic" />
       </div>
     </div>
   );

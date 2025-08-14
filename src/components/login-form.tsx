@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -11,7 +12,11 @@ import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
 import { getIdTokenResult } from 'firebase/auth';
 
-export default function LoginForm() {
+interface LoginFormProps {
+    redirectTo?: string;
+}
+
+export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,22 +31,16 @@ export default function LoginForm() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
       
-      // Force refresh of the token to get custom claims
-      const tokenResult = await getIdTokenResult(userCredential.user, true);
-      const claims = tokenResult.claims;
+      // Force refresh of the token to get custom claims, though we won't use them for routing here
+      await getIdTokenResult(userCredential.user, true);
 
       toast({
         title: "Login Successful",
         description: `Welcome back! Redirecting...`,
       });
 
-      if (claims.admin) {
-        router.push('/admin');
-      } else if (claims.clinic) {
-        router.push('/clinic');
-      } else {
-        router.push('/');
-      }
+      // Use the explicit redirect path provided
+      router.push(redirectTo);
 
     } catch (error: any) {
        console.error("Login Error:", error);

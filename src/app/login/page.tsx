@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Footprints } from 'lucide-react';
@@ -16,7 +17,7 @@ export default function LoginPage() {
           <h1 className="font-headline text-4xl font-bold text-primary">ViVa move</h1>
           <p className="text-muted-foreground">Please sign in to continue</p>
         </div>
-        <LoginForm />
+        <LoginForm redirectTo="/" />
       </div>
     </div>
   );
