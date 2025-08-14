@@ -7,20 +7,8 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
-import { serviceAccount } from '@/lib/service-account';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e) {
-    console.error('Firebase admin initialization error', e);
-  }
-}
 
 const PatientDataSchema = z.object({
     uhid: z.string().describe("The patient's unique health ID."),
@@ -68,9 +56,10 @@ const createPatientFlow = ai.defineFlow(
     outputSchema: CreatePatientOutputSchema,
   },
   async (input) => {
+    let userRecord;
     try {
       // Step 1: Create the user in Firebase Authentication
-      const userRecord = await admin.auth().createUser({
+      userRecord = await adminAuth.createUser({
         email: input.email,
         password: input.password,
         displayName: input.displayName,
@@ -78,11 +67,10 @@ const createPatientFlow = ai.defineFlow(
       });
       
       // Step 2: Set a custom claim to link the user to their clinic
-      await admin.auth().setCustomUserClaims(userRecord.uid, { clinicId: input.clinicId, patient: true });
+      await adminAuth.setCustomUserClaims(userRecord.uid, { clinicId: input.clinicId, patient: true });
       
       // Step 3: Create the patient document in the clinic's sub-collection in Firestore
-      const db = admin.firestore();
-      const patientRef = db.collection('clinics').doc(input.clinicId).collection('patients').doc(userRecord.uid);
+      const patientRef = adminDb.collection('clinics').doc(input.clinicId).collection('patients').doc(userRecord.uid);
       
       await patientRef.set(input.patientData);
 
@@ -93,13 +81,16 @@ const createPatientFlow = ai.defineFlow(
       };
     } catch (error: any) {
         console.error("Error creating patient:", error);
+        
+        // Clean up partially created user if Firestore write fails
+        if (userRecord && userRecord.uid) {
+            await adminAuth.deleteUser(userRecord.uid).catch(e => console.error("Cleanup failed for user:", userRecord.uid, e));
+        }
+
         if (error.code === 'auth/email-already-exists') {
             throw new Error(`A user with the email ${input.email} already exists.`);
         }
-        // Clean up partially created user if Firestore write fails
-        if (error.uid) {
-            await admin.auth().deleteUser(error.uid).catch(e => console.error("Cleanup failed for user:", error.uid, e));
-        }
+        
         throw new Error("An unexpected error occurred while creating the patient.");
     }
   }

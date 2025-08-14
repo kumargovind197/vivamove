@@ -7,20 +7,8 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
-import { serviceAccount } from '@/lib/service-account';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e) {
-    console.error('Firebase admin initialization error', e);
-  }
-}
 
 const CreateClinicInputSchema = z.object({
   name: z.string().describe('The name of the new clinic.'),
@@ -63,7 +51,7 @@ const createClinicFlow = ai.defineFlow(
     let userRecord;
     try {
       // Step 1: Create the user in Firebase Authentication
-      userRecord = await admin.auth().createUser({
+      userRecord = await adminAuth.createUser({
         email: input.email,
         password: input.password,
         displayName: input.name,
@@ -71,11 +59,10 @@ const createClinicFlow = ai.defineFlow(
       });
       
       // Step 2: Set a custom claim to identify the user as a clinic
-      await admin.auth().setCustomUserClaims(userRecord.uid, { clinic: true });
+      await adminAuth.setCustomUserClaims(userRecord.uid, { clinic: true });
       
       // Step 3: Create the clinic document in Firestore
-      const db = admin.firestore();
-      const clinicRef = db.collection('clinics').doc(userRecord.uid);
+      const clinicRef = adminDb.collection('clinics').doc(userRecord.uid);
       
       // Explicitly create the object for Firestore, excluding auth details
       const { email, password, ...clinicData } = input;
@@ -96,7 +83,7 @@ const createClinicFlow = ai.defineFlow(
         
         // Clean up partially created user if any step fails after user creation
         if (userRecord && userRecord.uid) {
-            await admin.auth().deleteUser(userRecord.uid).catch(e => console.error("Cleanup failed for user:", userRecord.uid, e));
+            await adminAuth.deleteUser(userRecord.uid).catch(e => console.error("Cleanup failed for user:", userRecord.uid, e));
         }
 
         if (error.code === 'auth/email-already-exists') {

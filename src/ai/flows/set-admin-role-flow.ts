@@ -8,21 +8,8 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
-import { serviceAccount } from '@/lib/service-account';
+import { adminAuth } from '@/lib/firebase-admin';
 
-
-// Initialize Firebase Admin SDK if not already initialized.
-// This ensures it's ready when any flow in this file is called.
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e) {
-    console.error('Firebase admin initialization error', e);
-  }
-}
 
 const SetAdminRoleInputSchema = z.object({
   email: z.string().email().describe('The email address of the user to grant admin privileges.'),
@@ -58,9 +45,9 @@ const setAdminRoleFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const userRecord = await admin.auth().getUserByEmail(input.email);
+      const userRecord = await adminAuth.getUserByEmail(input.email);
       
-      await admin.auth().setCustomUserClaims(userRecord.uid, { admin: true });
+      await adminAuth.setCustomUserClaims(userRecord.uid, { admin: true });
 
       return {
         uid: userRecord.uid,

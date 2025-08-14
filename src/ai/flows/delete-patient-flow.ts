@@ -7,20 +7,8 @@
  */
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
-import * as admin from 'firebase-admin';
-import { serviceAccount } from '@/lib/service-account';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
-
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-  } catch (e) {
-    console.error('Firebase admin initialization error', e);
-  }
-}
 
 const DeletePatientInputSchema = z.object({
   uid: z.string().describe('The UID of the patient user to delete.'),
@@ -55,11 +43,10 @@ const deletePatientFlow = ai.defineFlow(
   async (input) => {
     try {
       // Step 1: Delete the user from Firebase Authentication
-      await admin.auth().deleteUser(input.uid);
+      await adminAuth.deleteUser(input.uid);
       
       // Step 2: Delete the patient document from Firestore
-      const db = admin.firestore();
-      const patientRef = db.collection('clinics').doc(input.clinicId).collection('patients').doc(input.uid);
+      const patientRef = adminDb.collection('clinics').doc(input.clinicId).collection('patients').doc(input.uid);
       
       await patientRef.delete();
 
@@ -73,8 +60,7 @@ const deletePatientFlow = ai.defineFlow(
         if (error.code === 'auth/user-not-found') {
             // If user doesn't exist in Auth, still try to delete from Firestore just in case
              try {
-                const db = admin.firestore();
-                const patientRef = db.collection('clinics').doc(input.clinicId).collection('patients').doc(input.uid);
+                const patientRef = adminDb.collection('clinics').doc(input.clinicId).collection('patients').doc(input.uid);
                 await patientRef.delete();
                 return {
                     uid: input.uid,
