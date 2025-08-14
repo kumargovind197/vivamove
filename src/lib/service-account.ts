@@ -5,6 +5,7 @@
 // DO NOT check this file into source control.
 
 import "dotenv/config";
+import type * as admin from 'firebase-admin';
 
 const serviceAccountConfig = {
   "type": "service_account",
@@ -20,32 +21,35 @@ const serviceAccountConfig = {
 };
 
 
-// Type guard to ensure all necessary fields are strings
+// Type guard to ensure all necessary fields are strings and not undefined
 function isServiceAccount(account: any): account is admin.ServiceAccount {
     return (
-        typeof account.type === 'string' &&
-        typeof account.project_id === 'string' &&
-        typeof account.private_key_id === 'string' &&
-        typeof account.private_key === 'string' &&
-        typeof account.client_email === 'string' &&
-        typeof account.client_id === 'string' &&
-        typeof account.auth_uri === 'string' &&
-        typeof account.token_uri === 'string' &&
-        typeof account.auth_provider_x509_cert_url === 'string' &&
-        typeof account.client_x509_cert_url === 'string'
+        !!account.type &&
+        !!account.project_id &&
+        !!account.private_key_id &&
+        !!account.private_key &&
+        !!account.client_email &&
+        !!account.client_id &&
+        !!account.auth_uri &&
+        !!account.token_uri &&
+        !!account.auth_provider_x509_cert_url &&
+        !!account.client_x509_cert_url
     );
 }
 
 if (!isServiceAccount(serviceAccountConfig)) {
     const missingKeys = Object.entries(serviceAccountConfig)
-        .filter(([_, value]) => typeof value !== 'string' || value === '')
+        .filter(([_, value]) => !value)
         .map(([key]) => key);
 
-    console.error("Service account configuration is invalid. The following keys are missing or not strings in your environment variables:", missingKeys.join(', '));
-    // Provide a default empty object to avoid crashing on import, but initialization will fail.
-    // The console error above is the true source of the problem.
-    module.exports.serviceAccount = {};
-} else {
-    module.exports.serviceAccount = serviceAccountConfig;
+    console.error(
+        "Service account configuration is invalid. The following keys are missing from your .env file:",
+        missingKeys.join(', ')
+    );
+    
+    // Throw an error during build if the config is invalid
+    throw new Error("Missing required Firebase service account credentials in .env file.");
 }
 
+// Use 'export' for ES Modules
+export const serviceAccount = serviceAccountConfig;
