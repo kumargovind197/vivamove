@@ -11,12 +11,9 @@ import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Pain
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
-import { setAdminRole } from '@/app/actions';
+import { setAdminRole, createClinic } from '@/app/actions';
 import { Switch } from './ui/switch';
 import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
-import * as admin from 'firebase-admin';
-import { serviceAccount } from '@/lib/service-account';
 
 
 type Ad = {
@@ -458,40 +455,22 @@ export default function AdminPanel() {
     setIsCreatingClinic(true);
     
     try {
-      // Create user in Auth (this does not grant claims)
-      // NOTE: This uses a SECONDARY, temporary auth instance for user creation
-      // to avoid conflicts with the primary signed-in user. This is a common
-      // pattern for admin panels. A more robust solution would use the Admin SDK
-      // on a backend, but this client-side approach is simpler for this context.
-      const userCredential = await createUserWithEmailAndPassword(getAuth(), newClinic.email, newClinic.password);
-      const user = userCredential.user;
-
-      // Now, save the clinic data to Firestore
-      const db = getFirestore();
-      const clinicRef = doc(db, 'clinics', user.uid);
-      
-      const clinicData = {
+      const result = await createClinic({
         name: newClinic.name,
-        capacity: Number(newClinic.capacity) || 0,
+        email: newClinic.email,
+        password: newClinic.password,
+        capacity: newClinic.capacity,
         adsEnabled: newClinic.adsEnabled,
-        logo: newClinic.logo || 'https://placehold.co/200x80.png'
-      };
-
-      await setDoc(clinicRef, clinicData);
-
-      // We still need to set the custom claim. Since we can't do that on the client,
-      // we'll need to use a script or a backend function. For now, the user can log in,
-      // but won't see the clinic dashboard until the claim is set.
-      // We will add a note in the success toast.
+        logo: newClinic.logo, // Can be empty, flow provides a placeholder
+      });
       
       toast({
-        title: 'Clinic User Created',
-        description: `User ${newClinic.email} created. A 'clinic' role must be set manually for dashboard access.`,
-        duration: 9000,
+        title: 'Clinic Created Successfully',
+        description: `User ${result.email} created. They can now log in.`,
       });
 
       // Refresh local clinic list
-      fetchClinics();
+      await fetchClinics();
       setCreateClinicDialogOpen(false);
       setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
 
