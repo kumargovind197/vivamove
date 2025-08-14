@@ -224,7 +224,7 @@ export default function AppInfoDialog() {
               )}
              <div>
                 <DialogTitle className="text-xl">ViVa Move</DialogTitle>
-                <DialogDescription>A motivational step tracking app.</DialogDescription>
+                <DialogDescription>Step tracking app for health and wellness</DialogDescription>
              </div>
           </div>
         </DialogHeader>
