@@ -47,7 +47,7 @@ const setAdminRoleFlow = ai.defineFlow(
         message: `Successfully set custom claims for ${email}.`,
         uid: user.uid,
       };
-    } catch (error: any) => {
+    } catch (error: any) {
       console.error('Error setting custom claims:', error);
       // It's important to throw the error message back to the caller
       // so it can be displayed in the UI.
