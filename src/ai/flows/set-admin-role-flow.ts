@@ -3,27 +3,12 @@
 
 import { ai } from '@/ai/genkit';
 import { getFirebaseAdmin } from '@/lib/firebase-admin';
-import { z } from 'zod';
+import { SetAdminRoleInputSchema, SetAdminRoleOutputSchema, type SetAdminRoleInput, type SetAdminRoleOutput } from '@/lib/types';
 
 /**
  * @fileoverview A flow for setting custom claims on a Firebase user.
  * This is a secure server-side operation that uses the Firebase Admin SDK.
  */
-
-const SetAdminRoleInputSchema = z.object({
-  email: z.string().email('Invalid email address.'),
-  claims: z.record(z.any()).describe('The custom claims to set.'),
-});
-type SetAdminRoleInput = z.infer<typeof SetAdminRoleInputSchema>;
-
-
-const SetAdminRoleOutputSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  uid: z.string().optional(),
-});
-type SetAdminRoleOutput = z.infer<typeof SetAdminRoleOutputSchema>;
-
 
 const setAdminRoleFlow = ai.defineFlow(
   {
