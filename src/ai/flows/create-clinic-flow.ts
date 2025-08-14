@@ -65,7 +65,7 @@ const createClinicFlow = ai.defineFlow(
       const clinicRef = adminDb.collection('clinics').doc(userRecord.uid);
       
       // Explicitly create the object for Firestore, excluding auth details
-      const { email, password, ...clinicData } = input;
+      const { password, ...clinicData } = input;
       const placeholderLogo = 'https://placehold.co/200x80.png';
 
       await clinicRef.set({
