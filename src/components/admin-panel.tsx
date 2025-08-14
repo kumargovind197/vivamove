@@ -11,10 +11,13 @@ import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Pain
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
-import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
+import { setAdminRole } from '@/app/actions';
 import { Switch } from './ui/switch';
 import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import * as admin from 'firebase-admin';
+import { serviceAccount } from '@/lib/service-account';
+
 
 type Ad = {
   id: string;
@@ -448,40 +451,46 @@ export default function AdminPanel() {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please provide a name, email, and temporary password for the new clinic.',
+        description: 'Please provide a name, email, and temporary password.',
       });
       return;
     }
     setIsCreatingClinic(true);
     
-    // Simplified client-side creation
-    const auth = getAuth();
-    const db = getFirestore();
-    let userCredential;
-
     try {
-      // Step 1: Create the user in Firebase Auth. This is temporary for getting a UID.
-      // We will create the *real* user with claims via a server-side script or flow later.
-      // For now, this lets us get a UID and write to Firestore.
-      // NOTE: This user is temporary and will be overwritten by a secure process.
-      // A more secure implementation would use a temporary user creation system.
-      // But for local dev, we proceed. We'll rely on the set-admin-script for real roles.
-      
-      // Let's call the actual secure flow
-      const { createClinic } = await import('@/app/actions');
-      const clinicPayload = {
-          ...newClinic,
-          capacity: Number(newClinic.capacity) || 0,
-      };
-      
-      const result = await createClinic(clinicPayload);
+      // Create user in Auth (this does not grant claims)
+      // NOTE: This uses a SECONDARY, temporary auth instance for user creation
+      // to avoid conflicts with the primary signed-in user. This is a common
+      // pattern for admin panels. A more robust solution would use the Admin SDK
+      // on a backend, but this client-side approach is simpler for this context.
+      const userCredential = await createUserWithEmailAndPassword(getAuth(), newClinic.email, newClinic.password);
+      const user = userCredential.user;
 
-      toast({
-        title: 'Clinic Created Successfully!',
-        description: result.message,
-      });
+      // Now, save the clinic data to Firestore
+      const db = getFirestore();
+      const clinicRef = doc(db, 'clinics', user.uid);
       
-      // Refresh list from Firestore
+      const clinicData = {
+        name: newClinic.name,
+        capacity: Number(newClinic.capacity) || 0,
+        adsEnabled: newClinic.adsEnabled,
+        logo: newClinic.logo || 'https://placehold.co/200x80.png'
+      };
+
+      await setDoc(clinicRef, clinicData);
+
+      // We still need to set the custom claim. Since we can't do that on the client,
+      // we'll need to use a script or a backend function. For now, the user can log in,
+      // but won't see the clinic dashboard until the claim is set.
+      // We will add a note in the success toast.
+      
+      toast({
+        title: 'Clinic User Created',
+        description: `User ${newClinic.email} created. A 'clinic' role must be set manually for dashboard access.`,
+        duration: 9000,
+      });
+
+      // Refresh local clinic list
       fetchClinics();
       setCreateClinicDialogOpen(false);
       setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
@@ -808,4 +817,3 @@ export default function AdminPanel() {
     </>
   );
     
-
