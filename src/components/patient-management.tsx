@@ -26,8 +26,7 @@ import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { createPatient } from '@/ai/flows/create-patient-flow';
-import { deletePatient } from '@/ai/flows/delete-patient-flow';
+import { createPatient, deletePatient } from '@/app/actions';
 import { Skeleton } from './ui/skeleton';
 
 interface PatientManagementProps {

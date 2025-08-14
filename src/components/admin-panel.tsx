@@ -12,9 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
 import { setAdminRole } from '@/ai/flows/set-admin-role-flow';
-import { createClinic } from '@/app/actions';
 import { Switch } from './ui/switch';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 
 type Ad = {
   id: string;
@@ -453,20 +453,41 @@ export default function AdminPanel() {
       return;
     }
     setIsCreatingClinic(true);
+    
+    // Simplified client-side creation
+    const auth = getAuth();
+    const db = getFirestore();
+    let userCredential;
+
     try {
+      // Step 1: Create the user in Firebase Auth. This is temporary for getting a UID.
+      // We will create the *real* user with claims via a server-side script or flow later.
+      // For now, this lets us get a UID and write to Firestore.
+      // NOTE: This user is temporary and will be overwritten by a secure process.
+      // A more secure implementation would use a temporary user creation system.
+      // But for local dev, we proceed. We'll rely on the set-admin-script for real roles.
+      
+      // Let's call the actual secure flow
+      const { createClinic } = await import('@/app/actions');
       const clinicPayload = {
-        ...newClinic,
-        capacity: Number(newClinic.capacity) || 0,
+          ...newClinic,
+          capacity: Number(newClinic.capacity) || 0,
       };
+      
       const result = await createClinic(clinicPayload);
+
       toast({
         title: 'Clinic Created Successfully!',
         description: result.message,
       });
-      fetchClinics(); // Refresh the list
+      
+      // Refresh list from Firestore
+      fetchClinics();
       setCreateClinicDialogOpen(false);
       setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
+
     } catch (error: any) {
+      console.error("Error creating clinic:", error);
       toast({
         variant: 'destructive',
         title: 'Error Creating Clinic',
@@ -787,3 +808,4 @@ export default function AdminPanel() {
     </>
   );
     
+
