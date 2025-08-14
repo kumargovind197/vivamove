@@ -22,7 +22,7 @@ const SetAdminRoleOutputSchema = z.object({
   message: z.string(),
   uid: z.string().optional(),
 });
-type SetAdminRoleOutput = z.infer<typeof SetAdminRoleOutputSchema>;
+export type SetAdminRoleOutput = z.infer<typeof SetAdminRoleOutputSchema>;
 
 
 const setAdminRoleFlow = ai.defineFlow(
