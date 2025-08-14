@@ -475,7 +475,7 @@ export default function AdminPanel() {
       toast({
         variant: 'destructive',
         title: 'Error Creating Clinic',
-        description: error.message || 'An unexpected error occurred. The user may not exist in Authentication.',
+        description: error.message || 'An unexpected error occurred. The user may not exist in Firebase Authentication, or the backend may be misconfigured.',
       });
     } finally {
       setIsCreatingClinic(false);

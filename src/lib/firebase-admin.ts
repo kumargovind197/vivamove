@@ -8,18 +8,24 @@ export function getFirebaseAdmin() {
     return app;
   }
 
-  // Ensure environment variables are loaded (especially for local development)
-  require('dotenv').config({ path: '.env' });
+  // This is required for the Vercel/Next.js environment
+  // It loads the .env.local file for local development.
+  if (process.env.NODE_ENV !== 'production') {
+    require('dotenv').config({ path: '.env' });
+  }
 
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
-  if (!privateKey) {
-    throw new Error("FIREBASE_PRIVATE_KEY is not set in the environment variables.");
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+
+  if (!privateKey || !projectId || !clientEmail) {
+    throw new Error("FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY must be set in the environment variables.");
   }
   
   const serviceAccount: admin.ServiceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    // Replace the escaped newlines with actual newlines
+    projectId: projectId,
+    clientEmail: clientEmail,
+    // The private key must be correctly formatted with newlines
     privateKey: privateKey.replace(/\\n/g, '\n')
   };
 
@@ -30,6 +36,10 @@ export function getFirebaseAdmin() {
       });
     } catch (e: any) {
       console.error('Firebase Admin SDK initialization error', e.stack);
+      // Re-throw a more specific error to help with debugging
+      if (e.message.includes("Failed to parse private key")) {
+          throw new Error("Failed to parse Firebase private key. Ensure it is correctly formatted in the .env file, including the -----BEGIN and -----END lines.");
+      }
       throw new Error(`Failed to initialize Firebase Admin SDK: ${e.message}`);
     }
   } else {
