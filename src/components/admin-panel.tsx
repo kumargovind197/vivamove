@@ -7,14 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle, UserCog, Database, Server, UserCheck, ShieldPlus } from 'lucide-react';
+import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Paintbrush, Megaphone, PlusCircle, UserCog, Database, Server, UserCheck, ShieldPlus, Trash } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-import { BadgeCheck, BadgeAlert } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Switch } from './ui/switch';
-import { getFirestore, collection, getDocs, doc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { getFirestore, collection, getDocs, doc, setDoc, addDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { auth as clientAuth } from '@/lib/firebase';
+import { setCustomUserClaims } from '@/app/actions';
 
 
 type Ad = {
@@ -30,6 +31,7 @@ type Clinic = {
   logo: string;
   capacity: number;
   adsEnabled: boolean;
+  email: string;
 };
 
 const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
@@ -231,19 +233,21 @@ export default function AdminPanel() {
   const [isEditAdDialogOpen, setEditAdDialogOpen] = useState(false);
   const [editAdData, setEditAdData] = useState<{description: string, targetUrl: string, imageUrl: string}>({description: '', targetUrl: '', imageUrl: ''});
   const [editAdFileType, setEditAdFileType] = useState<'popup' | 'footer' | null>(null);
-
-  const [newAdminEmail, setNewAdminEmail] = useState('');
-  const [isGrantingAdmin, setIsGrantingAdmin] = useState(false);
   
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [isLoadingClinics, setIsLoadingClinics] = useState(true);
   
   const [isCreateClinicDialogOpen, setCreateClinicDialogOpen] = useState(false);
+  const [isEditClinicDialogOpen, setEditClinicDialogOpen] = useState(false);
   const [isCreatingClinic, setIsCreatingClinic] = useState(false);
+  const [clinicToEdit, setClinicToEdit] = useState<Clinic | null>(null);
+  
+  const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
+  const [isDeletingClinic, setIsDeletingClinic] = useState(false);
+  
   const [newClinic, setNewClinic] = useState({
     name: '',
     email: '',
-    password: '',
     logo: '',
     capacity: 100,
     adsEnabled: false,
@@ -403,47 +407,37 @@ export default function AdminPanel() {
     setEditAdDialogOpen(false);
     setAdToEdit(null);
   };
-
-  const handleGrantAdmin = async () => {
-     toast({
-        variant: 'destructive',
-        title: 'Feature Disabled',
-        description: 'Creating admins via the UI is disabled due to the removal of server-side flows. Please use the provided script.',
-      });
-  };
   
-  const handleNewClinicLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClinicLogoSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'new' | 'edit') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        setNewClinic(p => ({ ...p, logo: result }));
+        if (type === 'new') {
+            setNewClinic(p => ({ ...p, logo: result }));
+        } else {
+            setClinicToEdit(p => p ? { ...p, logo: result} : null);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleCreateClinic = async () => {
-    if (!newClinic.name || !newClinic.email || !newClinic.password) {
+    if (!newClinic.name || !newClinic.email) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
-        description: 'Please provide a name, email, and temporary password.',
+        description: 'Please provide at least a clinic name and email.',
       });
       return;
     }
     setIsCreatingClinic(true);
     
-    // NOTE: This is a simplified, client-side only creation flow.
-    // This is NOT secure for a production application as it requires elevated client-side permissions.
-    // It is used here to bypass the persistent server-side errors.
     try {
         const db = getFirestore();
         const placeholderLogo = 'https://placehold.co/200x80.png';
-        
-        // We are not creating an auth user here to avoid complexity.
-        // The clinic is just a record in the database.
         
         const clinicData = {
             name: newClinic.name,
@@ -456,27 +450,86 @@ export default function AdminPanel() {
 
         const docRef = await addDoc(collection(db, "clinics"), clinicData);
 
+        // This is a placeholder for creating the auth user and setting claims.
+        // In a real app, you would securely call a backend function.
+        // For this demo, we simulate setting a claim.
+        await setCustomUserClaims(newClinic.email, { clinic: true, clinicId: docRef.id });
+
         toast({
             title: 'Clinic Created Successfully',
-            description: `Clinic ${newClinic.name} has been added to the database.`,
+            description: `Clinic ${newClinic.name} has been added. An auth user needs to be created separately with the same email.`,
         });
 
-        // Manually add the new clinic to the local state to refresh the list
         setClinics(prevClinics => [...prevClinics, { id: docRef.id, ...clinicData }]);
         setCreateClinicDialogOpen(false);
-        setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
+        setNewClinic({ name: '', email: '', logo: '', capacity: 100, adsEnabled: false });
 
     } catch (error: any) {
       console.error("Error creating clinic:", error);
+      const errorMessage = error.code === 'auth/email-already-exists' 
+        ? "An account with this email already exists."
+        : error.message || 'An unexpected error occurred.';
       toast({
         variant: 'destructive',
         title: 'Error Creating Clinic',
-        description: error.message || 'An unexpected error occurred.',
+        description: errorMessage,
       });
     } finally {
       setIsCreatingClinic(false);
     }
   };
+
+  const openEditClinicDialog = (clinic: Clinic) => {
+    setClinicToEdit(clinic);
+    setEditClinicDialogOpen(true);
+  }
+
+  const handleUpdateClinic = async () => {
+    if (!clinicToEdit) return;
+    setIsCreatingClinic(true);
+    
+    const db = getFirestore();
+    const clinicRef = doc(db, 'clinics', clinicToEdit.id);
+
+    try {
+      const { id, ...dataToSave } = clinicToEdit;
+      await setDoc(clinicRef, dataToSave, { merge: true });
+
+      setClinics(prev => prev.map(c => c.id === id ? clinicToEdit : c));
+      toast({ title: 'Clinic Updated', description: `${clinicToEdit.name} has been successfully updated.` });
+      setEditClinicDialogOpen(false);
+      setClinicToEdit(null);
+    } catch (error: any) {
+      console.error("Error updating clinic:", error);
+      toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+    } finally {
+      setIsCreatingClinic(false);
+    }
+  }
+  
+  const handleDeleteClinic = async () => {
+    if (!clinicToDelete) return;
+    setIsDeletingClinic(true);
+
+    const db = getFirestore();
+    const clinicRef = doc(db, 'clinics', clinicToDelete.id);
+
+    try {
+      await deleteDoc(clinicRef);
+      // NOTE: This does not delete the associated Firebase Auth user.
+      // In a production app, this should be handled by a backend function.
+      
+      setClinics(prev => prev.filter(c => c.id !== clinicToDelete.id));
+      toast({ title: 'Clinic Deleted', description: `${clinicToDelete.name} has been removed.` });
+      setClinicToDelete(null);
+      setEditClinicDialogOpen(false); // Close the edit dialog as well
+    } catch (error: any) {
+      console.error("Error deleting clinic:", error);
+      toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+    } finally {
+      setIsDeletingClinic(false);
+    }
+  }
 
 
   return (
@@ -491,7 +544,6 @@ export default function AdminPanel() {
       <Tabs defaultValue="clinics" orientation="vertical" className="flex flex-col md:flex-row gap-8">
          <TabsList className="grid md:grid-cols-1 w-full md:w-48 shrink-0">
             <TabsTrigger value="clinics"><Building className="mr-2" />Clinics</TabsTrigger>
-            <TabsTrigger value="users"><UserCog className="mr-2" />User Management</TabsTrigger>
             <TabsTrigger value="advertising"><Megaphone className="mr-2" />Advertising</TabsTrigger>
             <TabsTrigger value="viva-log"><Paintbrush className="mr-2" />Viva log</TabsTrigger>
          </TabsList>
@@ -533,7 +585,9 @@ export default function AdminPanel() {
                                                     <p className="text-muted-foreground text-xs text-right">Capacity</p>
                                                     <p className="font-semibold">{clinic.capacity}</p>
                                                 </div>
-                                                <Button variant="ghost" size="icon"><Edit className="h-4 w-4 text-muted-foreground"/></Button>
+                                                <Button variant="ghost" size="icon" onClick={() => openEditClinicDialog(clinic)}>
+                                                    <Edit className="h-4 w-4 text-muted-foreground"/>
+                                                </Button>
                                             </div>
                                         </div>
                                     ))
@@ -543,39 +597,6 @@ export default function AdminPanel() {
                            </div>
                         </div>
                     </CardContent>
-                </Card>
-            </TabsContent>
-             <TabsContent value="users">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Grant Admin Privileges</CardTitle>
-                        <CardDescription>
-                            Enter the email address of an existing user to grant them administrative rights.
-                            This user will have full access to the admin panel.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="admin-email">User's Email Address</Label>
-                            <Input
-                                id="admin-email"
-                                type="email"
-                                placeholder="user@example.com"
-                                value={newAdminEmail}
-                                onChange={(e) => setNewAdminEmail(e.target.value)}
-                                disabled={isGrantingAdmin}
-                            />
-                        </div>
-                         <div className="text-xs text-muted-foreground flex gap-2 items-start">
-                           <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                           <span>This action is powerful and should be used with caution. Admin rights can also be managed using the `set-admin-script.js` file for emergency access.</span>
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button onClick={handleGrantAdmin} disabled={isGrantingAdmin}>
-                            {isGrantingAdmin ? 'Granting...' : 'Make Admin'}
-                        </Button>
-                    </CardFooter>
                 </Card>
             </TabsContent>
             <TabsContent value="advertising">
@@ -745,7 +766,7 @@ export default function AdminPanel() {
             <DialogHeader>
                 <DialogTitle>Enroll New Clinic</DialogTitle>
                 <DialogDescription>
-                    Set up a new clinic account. This will create a user and a corresponding Firestore document.
+                    Set up a new clinic account. This will create a Firestore document. The associated user must be created separately in Firebase Authentication.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -757,15 +778,11 @@ export default function AdminPanel() {
                     <Label htmlFor="clinic-email">Clinic Login Email</Label>
                     <Input id="clinic-email" type="email" value={newClinic.email} onChange={(e) => setNewClinic(p => ({...p, email: e.target.value}))} placeholder="clinic@example.com" />
                 </div>
-                <div className="space-y-2">
-                    <Label htmlFor="clinic-password">Temporary Password</Label>
-                    <Input id="clinic-password" type="password" value={newClinic.password} onChange={(e) => setNewClinic(p => ({...p, password: e.target.value}))} />
-                </div>
                  <div className="space-y-2">
                     <Label htmlFor="clinic-logo">Clinic Logo (Optional)</Label>
                     <div className="flex items-center gap-4">
                         {newClinic.logo && <img src={newClinic.logo} alt="Logo preview" className="h-10 w-10 object-cover rounded-md bg-muted"/>}
-                        <Input id="clinic-logo" type="file" accept="image/*" onChange={handleNewClinicLogoSelect} />
+                        <Input id="clinic-logo" type="file" accept="image/*" onChange={(e) => handleClinicLogoSelect(e, 'new')} />
                     </div>
                 </div>
                 <div className="space-y-2">
@@ -785,6 +802,77 @@ export default function AdminPanel() {
             </DialogFooter>
         </DialogContent>
     </Dialog>
+
+    {/* Edit Clinic Dialog */}
+    {clinicToEdit && (
+        <Dialog open={isEditClinicDialogOpen} onOpenChange={setEditClinicDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Edit Clinic Details</DialogTitle>
+                    <DialogDescription>
+                        Modify the details for {clinicToEdit.name}.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-clinic-name">Clinic Name</Label>
+                        <Input id="edit-clinic-name" value={clinicToEdit.name} onChange={(e) => setClinicToEdit(p => p ? {...p, name: e.target.value} : null)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-clinic-email">Clinic Login Email</Label>
+                        <Input id="edit-clinic-email" type="email" value={clinicToEdit.email} disabled />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-clinic-logo">Clinic Logo (Optional)</Label>
+                        <div className="flex items-center gap-4">
+                            <img src={clinicToEdit.logo} alt="Logo preview" className="h-10 w-10 object-cover rounded-md bg-muted"/>
+                            <Input id="edit-clinic-logo" type="file" accept="image/*" onChange={(e) => handleClinicLogoSelect(e, 'edit')} />
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="edit-clinic-capacity">Patient Capacity</Label>
+                        <Input id="edit-clinic-capacity" type="number" value={clinicToEdit.capacity} onChange={(e) => setClinicToEdit(p => p ? {...p, capacity: parseInt(e.target.value, 10) || 0} : null)} />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch id="edit-clinic-ads" checked={clinicToEdit.adsEnabled} onCheckedChange={(checked) => setClinicToEdit(p => p ? {...p, adsEnabled: checked} : null)} />
+                        <Label htmlFor="edit-clinic-ads">Enable Advertising Module</Label>
+                    </div>
+                </div>
+                <DialogFooter className="justify-between">
+                    <AlertDialog onOpenChange={(open) => { if(!open) setClinicToDelete(null) }}>
+                        <AlertDialogTrigger asChild>
+                             <Button variant="destructive" onClick={() => setClinicToDelete(clinicToEdit)}>
+                                <Trash className="mr-2" />
+                                Delete Clinic
+                            </Button>
+                        </AlertDialogTrigger>
+                        {clinicToDelete && (
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the <strong>{clinicToDelete.name}</strong> clinic record. The associated authentication user will NOT be deleted.
+                                </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleDeleteClinic} disabled={isDeletingClinic}>
+                                    {isDeletingClinic ? "Deleting..." : "Confirm Delete"}
+                                </AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                        )}
+                    </AlertDialog>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={() => setEditClinicDialogOpen(false)} disabled={isCreatingClinic}>Cancel</Button>
+                        <Button onClick={handleUpdateClinic} disabled={isCreatingClinic}>
+                            {isCreatingClinic ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </div>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )}
     </>
   );
     
