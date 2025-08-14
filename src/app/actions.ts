@@ -3,18 +3,17 @@
 
 import { setAdminRole, type SetAdminRoleInput } from "@/ai/flows/set-admin-role-flow";
 
-// In a real production app, you would use a secure backend function (like a Firebase Function)
-// to set custom claims. This server action is a stand-in for that.
 export async function setCustomUserClaims(email: string, claims: object) {
-  // This is a placeholder for a secure server-side operation.
-  // In a real app, you would use the Firebase Admin SDK here.
-  // For the purpose of this demo, we'll just log it.
-  console.log(`Setting custom claims for ${email}:`, claims);
+  console.log(`Attempting to set custom claims for ${email}:`, claims);
   try {
     const input: SetAdminRoleInput = { email, claims };
-    await setAdminRole(input);
+    const result = await setAdminRole(input);
+    if (!result.success) {
+        throw new Error(result.message);
+    }
     return { success: true, message: `Claims for ${email} have been set.` };
   } catch(e) {
+    console.error("Error in setCustomUserClaims action:", e);
     return { success: false, message: (e as Error).message };
   }
 }

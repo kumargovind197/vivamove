@@ -435,9 +435,6 @@ export default function AdminPanel() {
     }
     setIsCreatingClinic(true);
     
-    // This is now a CLIENT-SIDE ONLY operation for simplicity and to avoid backend errors.
-    // NOTE: This is NOT secure for a real production app. It requires Firestore rules to be open.
-    // A real app should use a secure Firebase Function (Callable Function).
     try {
         const db = getFirestore();
         const placeholderLogo = 'https://placehold.co/200x80.png';
@@ -455,8 +452,8 @@ export default function AdminPanel() {
         const docRef = await addDoc(collection(db, "clinics"), clinicData);
 
         // 2. Set the custom claim for the user.
-        // This requires a secure backend function. We're calling a Server Action that should wrap a Genkit flow.
-        const claimsResult = await setCustomUserClaims(newClinic.email, { clinic: true, clinicId: docRef.id });
+        const claims = { clinic: true, clinicId: docRef.id };
+        const claimsResult = await setCustomUserClaims(newClinic.email, claims);
 
         if (!claimsResult.success) {
             // If setting claims fails, we should ideally delete the created clinic document to avoid orphaned data.
@@ -466,11 +463,10 @@ export default function AdminPanel() {
 
         toast({
             title: 'Clinic Created Successfully',
-            description: `Clinic ${newClinic.name} has been added. The user role has been set.`,
+            description: `Clinic ${newClinic.name} has been added and the user role has been set.`,
         });
 
-        // Add to local state to update UI
-        setClinics(prevClinics => [...prevClinics, { id: docRef.id, ...clinicData, createdAt: new Date() } as any]);
+        await fetchClinics(); // Re-fetch to get the latest data
         setCreateClinicDialogOpen(false);
         setNewClinic({ name: '', email: '', logo: '', capacity: 100, adsEnabled: false });
 
@@ -479,7 +475,7 @@ export default function AdminPanel() {
       toast({
         variant: 'destructive',
         title: 'Error Creating Clinic',
-        description: error.message || 'An unexpected error occurred.',
+        description: error.message || 'An unexpected error occurred. The user may not exist in Authentication.',
       });
     } finally {
       setIsCreatingClinic(false);

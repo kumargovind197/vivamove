@@ -10,14 +10,14 @@ import { z } from 'zod';
  * This is a secure server-side operation that uses the Firebase Admin SDK.
  */
 
-const SetAdminRoleInputSchema = z.object({
+export const SetAdminRoleInputSchema = z.object({
   email: z.string().email('Invalid email address.'),
   claims: z.record(z.any()).describe('The custom claims to set.'),
 });
 export type SetAdminRoleInput = z.infer<typeof SetAdminRoleInputSchema>;
 
 
-const SetAdminRoleOutputSchema = z.object({
+export const SetAdminRoleOutputSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   uid: z.string().optional(),
@@ -36,11 +36,11 @@ const setAdminRoleFlow = ai.defineFlow(
       const adminAuth = getFirebaseAdmin().auth();
       const user = await adminAuth.getUserByEmail(email);
       
-      if (!user) {
-        throw new Error(`User with email ${email} not found.`);
-      }
+      // Merge with existing claims to avoid overwriting them
+      const existingClaims = (user.customClaims || {});
+      const newClaims = { ...existingClaims, ...claims };
 
-      await adminAuth.setCustomUserClaims(user.uid, claims);
+      await adminAuth.setCustomUserClaims(user.uid, newClaims);
       
       return {
         success: true,
