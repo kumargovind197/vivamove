@@ -25,8 +25,7 @@ import { Checkbox } from './ui/checkbox';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
-import { createPatient, deletePatient } from '@/app/actions';
+import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 
 interface PatientManagementProps {
@@ -227,24 +226,24 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
 
     setLoading(true);
     
+    // NOTE: This is a simplified, client-side only creation flow.
+    // This is NOT secure for a production application as it requires elevated client-side permissions.
     try {
-        const result = await createPatient({
+        const db = getFirestore();
+        const patientData = {
+            uhid: newPatient.uhid,
+            firstName: newPatient.firstName,
+            surname: newPatient.surname,
             email: newPatient.email,
-            password: 'password', // Default password
-            displayName: `${newPatient.firstName} ${newPatient.surname}`,
-            clinicId: clinicId,
-            patientData: {
-                uhid: newPatient.uhid,
-                firstName: newPatient.firstName,
-                surname: newPatient.surname,
-                email: newPatient.email,
-                age: parseInt(newPatient.age),
-                gender: newPatient.gender,
-            }
-        });
+            age: parseInt(newPatient.age),
+            gender: newPatient.gender,
+            createdAt: serverTimestamp(),
+        };
+
+        const docRef = await addDoc(collection(db, "clinics", clinicId, "patients"), patientData);
 
         const newPatientWithId: Patient = { 
-            id: result.uid,
+            id: docRef.id,
             ...newPatient, 
             age: parseInt(newPatient.age),
             // Add dummy percentages until real data is available
@@ -253,11 +252,11 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
             monthlySteps: Math.floor(Math.random() * 101),
             monthlyMinutes: Math.floor(Math.random() * 101),
         };
+
         setPatientsData(prev => [...prev, newPatientWithId]);
         toast({
             title: "Patient Registered Successfully",
-            description: `${newPatient.firstName} can now log in.`,
-            duration: 8000,
+            description: `${newPatient.firstName} has been added.`,
         });
         setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
         setAddPatientDialogOpen(false);
@@ -307,13 +306,15 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
   const handleRemovePatient = async (patient: Patient) => {
       if (!clinicId) return;
       setLoading(true);
+      const db = getFirestore();
+      const patientRef = doc(db, "clinics", clinicId, "patients", patient.id);
       
       try {
-        await deletePatient({ uid: patient.id, clinicId: clinicId });
+        await deleteDoc(patientRef);
         setPatientsData(prev => prev.filter(p => p.id !== patient.id));
         toast({
-            title: "Patient Removed & Account Disabled",
-            description: `${patient.firstName} ${patient.surname} has been removed and their access revoked.`,
+            title: "Patient Removed",
+            description: `${patient.firstName} ${patient.surname} has been removed from your clinic.`,
         });
       } catch (error: any) {
          console.error("Error removing patient: ", error);

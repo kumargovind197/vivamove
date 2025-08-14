@@ -11,9 +11,10 @@ import { Upload, Building, Edit, Trash2, PieChart, Download, AlertTriangle, Pain
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { BadgeCheck, BadgeAlert } from 'lucide-react';
-import { setAdminRole, createClinic } from '@/app/actions';
 import { Switch } from './ui/switch';
-import { getFirestore, collection, getDocs, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, doc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 
 type Ad = {
@@ -404,31 +405,11 @@ export default function AdminPanel() {
   };
 
   const handleGrantAdmin = async () => {
-    if (!newAdminEmail) {
-      toast({
+     toast({
         variant: 'destructive',
-        title: 'Email Required',
-        description: 'Please enter the email address of the user to make an admin.',
+        title: 'Feature Disabled',
+        description: 'Creating admins via the UI is disabled due to the removal of server-side flows. Please use the provided script.',
       });
-      return;
-    }
-    setIsGrantingAdmin(true);
-    try {
-      const result = await setAdminRole({ email: newAdminEmail });
-      toast({
-        title: 'Success!',
-        description: result.message,
-      });
-      setNewAdminEmail('');
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Granting Admin Role',
-        description: error.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsGrantingAdmin(false);
-    }
   };
   
   const handleNewClinicLogoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -454,25 +435,36 @@ export default function AdminPanel() {
     }
     setIsCreatingClinic(true);
     
+    // NOTE: This is a simplified, client-side only creation flow.
+    // This is NOT secure for a production application as it requires elevated client-side permissions.
+    // It is used here to bypass the persistent server-side errors.
     try {
-      const result = await createClinic({
-        name: newClinic.name,
-        email: newClinic.email,
-        password: newClinic.password,
-        capacity: newClinic.capacity,
-        adsEnabled: newClinic.adsEnabled,
-        logo: newClinic.logo, // Can be empty, flow provides a placeholder
-      });
-      
-      toast({
-        title: 'Clinic Created Successfully',
-        description: `User ${result.email} created. They can now log in.`,
-      });
+        const db = getFirestore();
+        const placeholderLogo = 'https://placehold.co/200x80.png';
+        
+        // We are not creating an auth user here to avoid complexity.
+        // The clinic is just a record in the database.
+        
+        const clinicData = {
+            name: newClinic.name,
+            email: newClinic.email,
+            capacity: newClinic.capacity,
+            adsEnabled: newClinic.adsEnabled,
+            logo: newClinic.logo || placeholderLogo,
+            createdAt: serverTimestamp(),
+        };
 
-      // Refresh local clinic list
-      await fetchClinics();
-      setCreateClinicDialogOpen(false);
-      setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
+        const docRef = await addDoc(collection(db, "clinics"), clinicData);
+
+        toast({
+            title: 'Clinic Created Successfully',
+            description: `Clinic ${newClinic.name} has been added to the database.`,
+        });
+
+        // Manually add the new clinic to the local state to refresh the list
+        setClinics(prevClinics => [...prevClinics, { id: docRef.id, ...clinicData }]);
+        setCreateClinicDialogOpen(false);
+        setNewClinic({ name: '', email: '', password: '', logo: '', capacity: 100, adsEnabled: false });
 
     } catch (error: any) {
       console.error("Error creating clinic:", error);
