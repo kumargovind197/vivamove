@@ -66,6 +66,7 @@ export default function ClinicPage() {
     );
   }
 
+  // Strict check: If not loading, and user is not a clinic user, deny access.
   if (!user || !claims?.clinic) {
      return (
       <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4 text-center">

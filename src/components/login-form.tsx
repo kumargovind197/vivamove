@@ -31,7 +31,7 @@ export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
       
-      // Force refresh of the token to get custom claims, though we won't use them for routing here
+      // Force refresh of the token to get custom claims for the session
       await getIdTokenResult(userCredential.user, true);
 
       toast({
@@ -39,7 +39,7 @@ export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
         description: `Welcome back! Redirecting...`,
       });
 
-      // Use the explicit redirect path provided
+      // Use the explicit redirect path provided by the page.
       router.push(redirectTo);
 
     } catch (error: any) {
