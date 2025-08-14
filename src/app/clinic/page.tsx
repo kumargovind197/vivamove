@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -32,7 +33,8 @@ export default function ClinicPage() {
     const fetchClinicData = async () => {
       setIsLoadingClinic(true);
       const db = getFirestore();
-      const clinicRef = doc(db, 'clinics', user.uid);
+      // Use the clinicId from the claims to fetch the correct document
+      const clinicRef = doc(db, 'clinics', claims.clinicId); 
       const clinicSnap = await getDoc(clinicRef);
 
       if (clinicSnap.exists()) {
@@ -72,8 +74,8 @@ export default function ClinicPage() {
         <p className="mt-2 text-muted-foreground max-w-sm">
           You do not have the required permissions to view this page. Please log in as a clinic user.
         </p>
-        <Button onClick={() => router.push('/login')} className="mt-6">
-          Go to Login
+        <Button onClick={() => router.push('/clinic/login')} className="mt-6">
+          Go to Clinic Login
         </Button>
       </div>
     );
@@ -83,7 +85,7 @@ export default function ClinicPage() {
     <div className="flex min-h-screen w-full flex-col">
       <AppHeader user={user} view="clinic" clinic={clinicData}/>
       <main className="flex-1">
-       <PatientManagement clinicId={user.uid} />
+       <PatientManagement clinicId={claims.clinicId} />
       </main>
     </div>
   );
