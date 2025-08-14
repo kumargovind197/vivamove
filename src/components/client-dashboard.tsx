@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import ActivityChart from '@/components/activity-chart';
-import { User } from 'firebase/auth';
 import { Footprints, Flame, Target, Trophy, Sparkles } from 'lucide-react';
 import ProgressRing from './progress-ring';
 import { Button } from './ui/button';
@@ -13,12 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Slider } from './ui/slider';
 import { cn } from '@/lib/utils';
 import { getDashboardMessage } from '@/lib/motivational-messages';
+import type { ClinicData, MockUser } from '@/lib/types';
 
-type Clinic = {
-    id: string;
-    name: string;
-    logo: string;
-}
 
 // --- MOCK LOCAL DEVICE STORAGE ---
 const generateInitialLocalData = () => {
@@ -53,7 +48,7 @@ const chartConfigDailyAverage = {
 };
 
 type ClientDashboardProps = {
-  user: User | null;
+  user: MockUser | null;
   fitData: {
       steps: number | null;
       activeMinutes: number | null;
@@ -61,7 +56,7 @@ type ClientDashboardProps = {
   dailyStepGoal: number;
   onStepGoalChange: (goal: number) => void;
   view: 'client' | 'clinic';
-  clinic: Clinic | null;
+  clinic: ClinicData | null;
 };
 
 const stepMilestones = [

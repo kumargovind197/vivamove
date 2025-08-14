@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -5,14 +6,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { UserCircle, Wrench, ShieldQuestion, Hospital, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { User } from 'firebase/auth';
 import { useAuth } from '@/hooks/useAuth';
+import type { ClinicData, MockUser } from '@/lib/types';
 
-type Clinic = {
-    id: string;
-    name: string;
-    logo: string;
-}
 
 const VivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -201,8 +197,8 @@ M1269.5,163
 );
 
 type AppHeaderProps = {
-  user: User | null;
-  clinic: Clinic | null;
+  user: MockUser | null;
+  clinic: ClinicData | null;
   view: 'client' | 'clinic' | 'admin';
   patientId?: string;
   patientName?: string;

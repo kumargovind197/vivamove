@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from 'react';
@@ -10,7 +11,7 @@ import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AdminPage() {
-  const { user, loading, claims } = useAuth();
+  const { user, loading, claims, logout } = useAuth();
   const router = useRouter();
 
   if (loading) {
@@ -42,7 +43,10 @@ export default function AdminPage() {
         <p className="mt-2 text-muted-foreground max-w-sm">
           You do not have the required permissions to view this page. Please log in as an administrator.
         </p>
-        <Button onClick={() => router.push('/login')} className="mt-6">
+        <Button onClick={() => {
+            logout();
+            router.push('/login');
+        }} className="mt-6">
           Go to Login
         </Button>
       </div>

@@ -6,95 +6,48 @@ import { useParams } from 'next/navigation';
 import AppHeader from '@/components/app-header';
 import ClientDashboard from '@/components/client-dashboard';
 import DataCards from '@/components/data-cards';
-import type { User } from 'firebase/auth';
+import { getPatientById, getClinicData, MOCK_USERS } from '@/lib/mock-data';
+import type { ClinicData, MockUser, Patient } from '@/lib/types';
 
-type Clinic = {
-    id: string;
-    name: string;
-    logo: string;
-}
-
-// Mock user for development purposes - this would be the patient's user object
-const mockPatientUser: User = {
-  uid: 'mock-user-id-from-clinic-view',
-  email: 'patient@example.com',
-  displayName: 'John Doe',
-  photoURL: 'https://placehold.co/100x100.png',
-  providerId: 'password',
-  emailVerified: true,
-  isAnonymous: false,
-  metadata: {},
-  providerData: [],
-  tenantId: null,
-  delete: async () => {},
-  getIdToken: async () => 'mock-token',
-  getIdTokenResult: async () => ({
-    token: 'mock-token',
-    expirationTime: '',
-    authTime: '',
-    issuedAtTime: '',
-    signInProvider: null,
-    signInSecondFactor: null,
-    claims: {},
-  }),
-  reload: async () => {},
-  toJSON: () => ({}),
-};
-
-// Mock clinic user for the header
-const mockClinicUser: User = {
-  uid: 'mock-clinic-id',
-  email: 'clinic@example.com',
-  displayName: 'Dr. Smith',
-  photoURL: 'https://placehold.co/100x100.png',
-  providerId: 'password',
-  emailVerified: true,
-  isAnonymous: false,
-  metadata: {},
-  providerData: [],
-  tenantId: null,
-  delete: async () => {},
-  getIdToken: async () => 'mock-token',
-  getIdTokenResult: async () => ({
-    token: 'mock-token',
-    expirationTime: '',
-    authTime: '',
-    issuedAtTime: '',
-    signInProvider: null,
-    signInSecondFactor: null,
-    claims: {},
-  }),
-  reload: async () => {},
-  toJSON: () => ({}),
-};
-
-const USER_CLINIC_ID = 'clinic-wellness';
 
 export default function PatientDetailPage() {
   const [fitData, setFitData] = useState<{steps: number | null, activeMinutes: number | null}>({ steps: 5432, activeMinutes: 25 });
   const [dailyStepGoal, setDailyStepGoal] = useState(10000);
-  const [clinicData, setClinicData] = useState<Clinic | null>(null);
+  const [clinicData, setClinicData] = useState<ClinicData | null>(null);
+  const [patientData, setPatientData] = useState<Patient | null>(null);
   
   const params = useParams();
   const patientId = params.id as string;
 
-  // In a real app, you would fetch real clinic data
-  useEffect(() => {
-    // This is where you would fetch the real clinic data from firestore
-    // For now we use a placeholder:
-    setClinicData({id: "clinic-123", name: "Wellness Clinic", logo: "https://placehold.co/200x80.png"});
-  }, []);
+  // Use the mock clinic user for the header
+  const mockClinicUser = MOCK_USERS.find(u => u.claims.clinic)!;
 
-  // In a real app, you would use patientId to fetch the patient's data.
+  useEffect(() => {
+    if (mockClinicUser.claims.clinicId) {
+        const clinic = getClinicData(mockClinicUser.claims.clinicId);
+        setClinicData(clinic);
+        const patient = getPatientById(mockClinicUser.claims.clinicId, patientId);
+        setPatientData(patient);
+    }
+  }, [patientId, mockClinicUser.claims.clinicId]);
+  
+  const patientAsUser: MockUser | null = patientData ? {
+      uid: patientData.id,
+      email: patientData.email,
+      displayName: `${patientData.firstName} ${patientData.surname}`,
+      claims: {}
+  } : null;
 
   return (
     <div className="flex min-h-screen w-full flex-col">
-      {/* The header knows it's in a patient detail view from the 'clinic' view context */}
-      <AppHeader user={mockClinicUser} view="clinic" clinic={clinicData} patientId={patientId} patientName={mockPatientUser.displayName || 'Patient'} />
+      <AppHeader user={mockClinicUser} view="clinic" clinic={clinicData} patientId={patientId} patientName={patientAsUser?.displayName || 'Patient'} />
       <main className="flex-1">
-        {/* These components are for the patient being viewed */}
-        <DataCards user={mockPatientUser} onDataFetched={setFitData} />
-        <ClientDashboard view="clinic" user={mockPatientUser} fitData={fitData} dailyStepGoal={dailyStepGoal} onStepGoalChange={setDailyStepGoal} clinic={clinicData}/>
+        {patientAsUser && (
+            <>
+                <DataCards user={patientAsUser} onDataFetched={setFitData} />
+                <ClientDashboard view="clinic" user={patientAsUser} fitData={fitData} dailyStepGoal={dailyStepGoal} onStepGoalChange={setDailyStepGoal} clinic={clinicData}/>
+            </>
+        )}
       </main>
     </div>
   );

@@ -2,18 +2,23 @@
 'use client';
 
 import { useContext, createContext } from 'react';
-import type { User } from 'firebase/auth';
+import type { MockUser } from '@/lib/types';
+
 
 export interface AuthContextType {
-  user: User | null;
+  user: MockUser | null;
   loading: boolean;
   claims: { [key: string]: any } | null;
+  login: (email: string, password: string) => Promise<MockUser>;
+  logout: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   claims: null,
+  login: async () => MOCK_USERS[0],
+  logout: () => {},
 });
 
 export const useAuth = () => {

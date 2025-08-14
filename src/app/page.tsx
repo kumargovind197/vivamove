@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -11,26 +12,14 @@ import AdBanner from '@/components/ad-banner';
 import FooterAdBanner from '@/components/footer-ad-banner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getClinicData, getAds } from '@/lib/mock-data';
+import type { Ad, ClinicData, MockUser } from '@/lib/types';
 
-type Ad = {
-  id: string;
-  imageUrl: string;
-  description: string;
-  targetUrl: string;
-}
-
-type ClinicData = {
-    id: string;
-    name: string;
-    logo: string;
-    adsEnabled: boolean;
-}
 
 export default function Home() {
-  const { user, loading, claims } = useAuth();
+  const { user, loading, claims, logout } = useAuth();
   const router = useRouter();
 
   const [dailyStepGoal, setDailyStepGoal] = useState(8000);
@@ -56,32 +45,17 @@ export default function Home() {
 
         // Fetch clinic data if user is a patient
         if (claims?.clinicId) {
-            const db = getFirestore();
-            const clinicRef = doc(db, 'clinics', claims.clinicId);
-            const clinicSnap = await getDoc(clinicRef);
+            const clinic = getClinicData(claims.clinicId);
+            setClinicData(clinic);
 
-            if (clinicSnap.exists()) {
-                const clinic = clinicSnap.data() as Omit<ClinicData, 'id'>;
-                setClinicData({ id: clinicSnap.id, ...clinic });
-
-                 if (clinic.adsEnabled) {
-                    // Using mock ads since there's no live data fetch
-                    const mockPopupAd: Ad = {
-                        id: 'popup1',
-                        imageUrl: 'https://placehold.co/400x300.png',
-                        description: 'A sample pop-up ad',
-                        targetUrl: 'https://example.com'
-                    };
-                    const mockFooterAd: Ad = {
-                        id: 'footer1',
-                        imageUrl: 'https://placehold.co/728x90.png',
-                        description: 'A sample footer ad',
-                        targetUrl: 'https://example.com'
-                    };
-                    
-                    setPopupAdContent(mockPopupAd);
+            if (clinic?.adsEnabled) {
+                const { popupAds, footerAds } = getAds();
+                if (popupAds.length > 0) {
+                    setPopupAdContent(popupAds[0]);
                     setShowPopupAd(true);
-                    setFooterAdContent(mockFooterAd);
+                }
+                 if (footerAds.length > 0) {
+                    setFooterAdContent(footerAds[0]);
                     setShowFooterAd(true);
                 }
             }
@@ -121,8 +95,11 @@ export default function Home() {
             <p className="mt-2 text-muted-foreground max-w-sm">
             You must be logged in to view this page.
             </p>
-            <Button onClick={() => router.push('/login')} className="mt-6">
-            Go to Login
+            <Button onClick={() => {
+                logout();
+                router.push('/login');
+            }} className="mt-6">
+              Go to Login
             </Button>
         </div>
     );

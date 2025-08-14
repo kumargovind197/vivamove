@@ -24,32 +24,21 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from './ui/checkbox';
 import { Textarea } from './ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { getFirestore, collection, getDocs, doc, setDoc, deleteDoc, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { Skeleton } from './ui/skeleton';
+import { getClinicData, getPatientsForClinic, addPatientToClinic, updatePatientInClinic, removePatientFromClinic } from '@/lib/mock-data';
+import type { Patient } from '@/lib/types';
+
 
 interface PatientManagementProps {
   clinicId: string | null;
 }
 
-type Patient = { 
-  id: string; // This will be the user's UID
-  uhid: string; 
-  firstName: string; 
-  surname: string; 
-  email: string; 
-  age: number; 
-  gender: string; 
-  weeklySteps?: number; // These will be calculated later or fetched
-  weeklyMinutes?: number; 
-  monthlySteps?: number; 
-  monthlyMinutes?: number; 
-};
 
 const getPercentageBadgeClass = (progress: number) => {
-    if (progress < 40) return "bg-red-500/20 text-red-300";
-    if (progress < 70) return "bg-yellow-400/20 text-yellow-300";
-    return "bg-green-500/20 text-green-300";
+    if (progress < 40) return "bg-red-500/20 text-red-700 dark:text-red-300";
+    if (progress < 70) return "bg-yellow-400/20 text-yellow-700 dark:text-yellow-300";
+    return "bg-green-500/20 text-green-700 dark:text-green-300";
 };
 
 type FilterOption = 'all' | '<30' | '30-50' | '50-80' | '>80';
@@ -86,39 +75,20 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
+  const fetchPatientsAndClinic = () => {
     if (!clinicId) return;
+    setLoading(true);
+    const clinic = getClinicData(clinicId);
+    if (clinic) {
+        setClinicCapacity(clinic.capacity);
+    }
+    const patients = getPatientsForClinic(clinicId);
+    setPatientsData(patients);
+    setLoading(false);
+  };
 
-    const fetchPatientsAndClinicData = async () => {
-        setLoading(true);
-        const db = getFirestore();
-        
-        // Fetch clinic data for capacity
-        const clinicRef = doc(db, "clinics", clinicId);
-        const clinicSnap = await getDoc(clinicRef);
-        if (clinicSnap.exists()) {
-            setClinicCapacity(clinicSnap.data().capacity || 0);
-        }
-
-        // Fetch patients
-        const patientsCollectionRef = collection(db, "clinics", clinicId, "patients");
-        const querySnapshot = await getDocs(patientsCollectionRef);
-        const fetchedPatients = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Patient));
-
-        // Add dummy percentages for now
-        const patientsWithPercentages = fetchedPatients.map(p => ({
-            ...p,
-            weeklySteps: Math.floor(Math.random() * 101),
-            weeklyMinutes: Math.floor(Math.random() * 101),
-            monthlySteps: Math.floor(Math.random() * 101),
-            monthlyMinutes: Math.floor(Math.random() * 101),
-        }));
-
-        setPatientsData(patientsWithPercentages);
-        setLoading(false);
-    };
-
-    fetchPatientsAndClinicData();
+  useEffect(() => {
+    fetchPatientsAndClinic();
   }, [clinicId]);
   
 
@@ -166,7 +136,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
 
   const currentPatientCount = patientsData.length;
   const remainingSlots = clinicCapacity - currentPatientCount;
-  const isAtCapacity = currentPatientCount >= clinicCapacity && clinicCapacity > 0;
+  const isAtCapacity = clinicCapacity > 0 && currentPatientCount >= clinicCapacity;
 
   const handleRowClick = (e: React.MouseEvent, patientId: string) => {
     const target = e.target as HTMLElement;
@@ -225,48 +195,25 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
     }
 
     setLoading(true);
+    await new Promise(res => setTimeout(res, 500)); // Simulate async
     
-    // NOTE: This is a simplified, client-side only creation flow.
-    // This is NOT secure for a production application as it requires elevated client-side permissions.
     try {
-        const db = getFirestore();
         const patientData = {
-            uhid: newPatient.uhid,
-            firstName: newPatient.firstName,
-            surname: newPatient.surname,
-            email: newPatient.email,
+            ...newPatient,
             age: parseInt(newPatient.age),
-            gender: newPatient.gender,
-            createdAt: serverTimestamp(),
         };
 
-        const docRef = await addDoc(collection(db, "clinics", clinicId, "patients"), patientData);
+        addPatientToClinic(clinicId, patientData);
 
-        const newPatientWithId: Patient = { 
-            id: docRef.id,
-            ...newPatient, 
-            age: parseInt(newPatient.age),
-            // Add dummy percentages until real data is available
-            weeklySteps: Math.floor(Math.random() * 101),
-            weeklyMinutes: Math.floor(Math.random() * 101),
-            monthlySteps: Math.floor(Math.random() * 101),
-            monthlyMinutes: Math.floor(Math.random() * 101),
-        };
-
-        setPatientsData(prev => [...prev, newPatientWithId]);
         toast({
             title: "Patient Registered Successfully",
             description: `${newPatient.firstName} has been added.`,
         });
+        fetchPatientsAndClinic();
         setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
         setAddPatientDialogOpen(false);
     } catch (error: any) {
-        console.error("Error adding patient: ", error);
-        toast({
-            variant: "destructive",
-            title: "Registration Failed",
-            description: error.message,
-        });
+        toast({ variant: "destructive", title: "Registration Failed", description: error.message });
     } finally {
         setLoading(false);
     }
@@ -276,27 +223,24 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
       if (!patientToEdit || !clinicId) return;
 
       setLoading(true);
-      const db = getFirestore();
-      const patientRef = doc(db, "clinics", clinicId, "patients", patientToEdit.id);
-
+      await new Promise(res => setTimeout(res, 500));
+      
       try {
         const updatedData = {
           ...patientToEdit,
           age: typeof patientToEdit.age === 'string' ? parseInt(patientToEdit.age) : patientToEdit.age,
         };
-        // Remove ID from the object to be saved, as it's the doc ID
-        const { id, ...dataToSave } = updatedData;
 
-        await setDoc(patientRef, dataToSave, { merge: true });
-        setPatientsData(prev => prev.map(p => p.id === patientToEdit.id ? updatedData : p));
+        updatePatientInClinic(clinicId, patientToEdit.id, updatedData);
+        
         toast({
             title: "Patient Details Updated",
             description: `Details for ${patientToEdit.firstName} ${patientToEdit.surname} have been saved.`,
         });
+        fetchPatientsAndClinic();
         setEditPatientDialogOpen(false);
         setPatientToEdit(null);
       } catch (error: any) {
-          console.error("Error updating patient: ", error);
           toast({ variant: "destructive", title: "Update Failed", description: error.message });
       } finally {
           setLoading(false);
@@ -306,18 +250,16 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
   const handleRemovePatient = async (patient: Patient) => {
       if (!clinicId) return;
       setLoading(true);
-      const db = getFirestore();
-      const patientRef = doc(db, "clinics", clinicId, "patients", patient.id);
+      await new Promise(res => setTimeout(res, 500));
       
       try {
-        await deleteDoc(patientRef);
-        setPatientsData(prev => prev.filter(p => p.id !== patient.id));
+        removePatientFromClinic(clinicId, patient.id);
         toast({
             title: "Patient Removed",
             description: `${patient.firstName} ${patient.surname} has been removed from your clinic.`,
         });
+        fetchPatientsAndClinic();
       } catch (error: any) {
-         console.error("Error removing patient: ", error);
          toast({ variant: "destructive", title: "Removal Failed", description: error.message });
       } finally {
         setPatientToRemove(null);
@@ -577,7 +519,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
                             </div>
                         </CardContent>
                         <CardFooter className='text-xs text-muted-foreground pt-0 pb-4 px-4'>
-                            Clinic capacity is managed in its Firestore document.
+                            Clinic capacity can be changed in the clinic list.
                         </CardFooter>
                     </Card>
 
@@ -628,7 +570,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently remove <span className="font-semibold">{`${patient.firstName} ${patient.surname}`}</span> from your clinic and disable their login.
+                                            This action cannot be undone. This will permanently remove <span className="font-semibold">{`${patient.firstName} ${patient.surname}`}</span> from your clinic's patient list.
                                             <br/><br/>
                                             To confirm, please type <strong className="text-foreground">delete</strong> below.
                                             </AlertDialogDescription>
@@ -670,7 +612,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
           <DialogHeader>
             <DialogTitle>Add New Patient</DialogTitle>
             <DialogDescription>
-              Enter the patient's details below. An account will be created with a default password.
+              Enter the patient's details below to enroll them in your clinic.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

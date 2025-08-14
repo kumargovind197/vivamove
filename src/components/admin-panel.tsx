@@ -12,27 +12,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { Switch } from './ui/switch';
-import { getFirestore, collection, getDocs, doc, setDoc, addDoc, deleteDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { auth as clientAuth } from '@/lib/firebase';
-import { setCustomUserClaims } from '@/app/actions';
+import { getAds, updateAds, getClinics, createClinic, updateClinic, deleteClinic } from '@/lib/mock-data';
+import type { Ad, Clinic } from '@/lib/types';
 
-
-type Ad = {
-  id: string;
-  imageUrl: string;
-  description: string;
-  targetUrl: string;
-}
-
-type Clinic = {
-  id: string;
-  name: string;
-  logo: string;
-  capacity: number;
-  adsEnabled: boolean;
-  email: string;
-};
 
 const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -239,11 +221,10 @@ export default function AdminPanel() {
   
   const [isCreateClinicDialogOpen, setCreateClinicDialogOpen] = useState(false);
   const [isEditClinicDialogOpen, setEditClinicDialogOpen] = useState(false);
-  const [isCreatingClinic, setIsCreatingClinic] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [clinicToEdit, setClinicToEdit] = useState<Clinic | null>(null);
   
   const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
-  const [isDeletingClinic, setIsDeletingClinic] = useState(false);
   
   const [newClinic, setNewClinic] = useState({
     name: '',
@@ -262,36 +243,20 @@ export default function AdminPanel() {
       setVivaMoveLogoPreview(savedLogo);
     }
     
-    // Load saved ads from local storage
-    const savedPopupAds = localStorage.getItem('popupAds');
-    if (savedPopupAds) {
-        setPopupAds(JSON.parse(savedPopupAds));
-    }
-    const savedFooterAds = localStorage.getItem('footerAds');
-    if (savedFooterAds) {
-        setFooterAds(JSON.parse(savedFooterAds));
-    }
+    // Load ads and clinics from our mock data store
+    const { popupAds, footerAds } = getAds();
+    setPopupAds(popupAds);
+    setFooterAds(footerAds);
     
     fetchClinics();
 
   }, []);
   
-  const fetchClinics = async () => {
+  const fetchClinics = () => {
     setIsLoadingClinics(true);
-    try {
-        const db = getFirestore();
-        const querySnapshot = await getDocs(collection(db, "clinics"));
-        const clinicsData = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...(doc.data() as Omit<Clinic, 'id'>)
-        }));
-        setClinics(clinicsData);
-    } catch (error) {
-        console.error("Error fetching clinics: ", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch clinic data.' });
-    } finally {
-        setIsLoadingClinics(false);
-    }
+    const clinicsData = getClinics();
+    setClinics(clinicsData);
+    setIsLoadingClinics(false);
   };
 
   const handleVivaMoveLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,30 +313,31 @@ export default function AdminPanel() {
       return;
     }
     const newAd = { ...adData, id: new Date().toISOString() };
-    let updatedAds;
+    const currentAds = getAds();
+    
     if (adType === 'popup') {
-      updatedAds = [...popupAds, newAd];
-      setPopupAds(updatedAds);
-      setNewPopupAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
+        currentAds.popupAds.push(newAd);
+        setPopupAds(currentAds.popupAds);
+        setNewPopupAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
     } else {
-      updatedAds = [...footerAds, newAd];
-      setFooterAds(updatedAds);
-      setNewFooterAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
+        currentAds.footerAds.push(newAd);
+        setFooterAds(currentAds.footerAds);
+        setNewFooterAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
     }
-    localStorage.setItem(adType === 'popup' ? 'popupAds' : 'footerAds', JSON.stringify(updatedAds));
+    updateAds(currentAds);
     toast({ title: 'Success', description: 'New advertisement has been added.' });
   };
 
   const handleRemoveAd = (adId: string, adType: 'popup' | 'footer') => {
-    let updatedAds;
+    const currentAds = getAds();
     if (adType === 'popup') {
-        updatedAds = popupAds.filter(ad => ad.id !== adId);
-        setPopupAds(updatedAds);
+        currentAds.popupAds = currentAds.popupAds.filter(ad => ad.id !== adId);
+        setPopupAds(currentAds.popupAds);
     } else {
-        updatedAds = footerAds.filter(ad => ad.id !== adId);
-        setFooterAds(updatedAds);
+        currentAds.footerAds = currentAds.footerAds.filter(ad => ad.id !== adId);
+        setFooterAds(currentAds.footerAds);
     }
-    localStorage.setItem(adType === 'popup' ? 'popupAds' : 'footerAds', JSON.stringify(updatedAds));
+    updateAds(currentAds);
     toast({ title: 'Ad Removed', description: 'The advertisement has been removed.' });
   };
 
@@ -386,23 +352,17 @@ export default function AdminPanel() {
     if (!adToEdit || !editAdFileType) return;
 
     const updatedAd = { ...adToEdit, ...editAdData };
-    let currentAds: Ad[];
-    let setAds: React.Dispatch<React.SetStateAction<Ad[]>>;
-    let storageKey: 'popupAds' | 'footerAds';
+    const currentAds = getAds();
 
     if (editAdFileType === 'popup') {
-        currentAds = popupAds;
-        setAds = setPopupAds;
-        storageKey = 'popupAds';
+        currentAds.popupAds = currentAds.popupAds.map(ad => ad.id === adToEdit.id ? updatedAd : ad);
+        setPopupAds(currentAds.popupAds);
     } else {
-        currentAds = footerAds;
-        setAds = setFooterAds;
-        storageKey = 'footerAds';
+        currentAds.footerAds = currentAds.footerAds.map(ad => ad.id === adToEdit.id ? updatedAd : ad);
+        setFooterAds(currentAds.footerAds);
     }
 
-    const updatedAds = currentAds.map(ad => ad.id === adToEdit.id ? updatedAd : ad);
-    setAds(updatedAds);
-    localStorage.setItem(storageKey, JSON.stringify(updatedAds));
+    updateAds(currentAds);
     toast({ title: 'Ad Updated', description: 'The advertisement has been successfully modified.' });
     setEditAdDialogOpen(false);
     setAdToEdit(null);
@@ -433,52 +393,34 @@ export default function AdminPanel() {
       });
       return;
     }
-    setIsCreatingClinic(true);
+    setIsProcessing(true);
+    
+    // Simulate network delay
+    await new Promise(res => setTimeout(res, 1000));
     
     try {
-        const db = getFirestore();
-        const placeholderLogo = 'https://placehold.co/200x80.png';
-        
-        // 1. Create the clinic document in Firestore
-        const clinicData = {
-            name: newClinic.name,
-            email: newClinic.email,
-            capacity: newClinic.capacity,
-            adsEnabled: newClinic.adsEnabled,
-            logo: newClinic.logo || placeholderLogo,
-            createdAt: serverTimestamp(),
-        };
-
-        const docRef = await addDoc(collection(db, "clinics"), clinicData);
-
-        // 2. Set the custom claim for the user.
-        const claims = { clinic: true, clinicId: docRef.id };
-        const claimsResult = await setCustomUserClaims(newClinic.email, claims);
-
-        if (!claimsResult.success) {
-            // If setting claims fails, we should ideally delete the created clinic document to avoid orphaned data.
-            await deleteDoc(doc(db, "clinics", docRef.id));
-            throw new Error(claimsResult.message || 'Failed to set user role.');
-        }
-
-        toast({
-            title: 'Clinic Created Successfully',
-            description: `Clinic ${newClinic.name} has been added and the user role has been set.`,
-        });
-
-        await fetchClinics(); // Re-fetch to get the latest data
-        setCreateClinicDialogOpen(false);
-        setNewClinic({ name: '', email: '', logo: '', capacity: 100, adsEnabled: false });
+      createClinic({
+          ...newClinic,
+          logo: newClinic.logo || 'https://placehold.co/200x80.png',
+      });
+      
+      toast({
+          title: 'Clinic Created Successfully',
+          description: `Clinic ${newClinic.name} has been added and the user role has been set.`,
+      });
+      
+      fetchClinics(); // Re-fetch to get the latest data
+      setCreateClinicDialogOpen(false);
+      setNewClinic({ name: '', email: '', logo: '', capacity: 100, adsEnabled: false });
 
     } catch (error: any) {
-      console.error("Error creating clinic:", error);
       toast({
         variant: 'destructive',
         title: 'Error Creating Clinic',
-        description: error.message || 'An unexpected error occurred. The user may not exist in Firebase Authentication, or the backend may be misconfigured.',
+        description: error.message || 'An unexpected error occurred.',
       });
     } finally {
-      setIsCreatingClinic(false);
+      setIsProcessing(false);
     }
   };
 
@@ -489,49 +431,38 @@ export default function AdminPanel() {
 
   const handleUpdateClinic = async () => {
     if (!clinicToEdit) return;
-    setIsCreatingClinic(true);
+    setIsProcessing(true);
+    await new Promise(res => setTimeout(res, 1000));
     
-    const db = getFirestore();
-    const clinicRef = doc(db, 'clinics', clinicToEdit.id);
-
     try {
-      const { id, ...dataToSave } = clinicToEdit;
-      await setDoc(clinicRef, dataToSave, { merge: true });
-
-      setClinics(prev => prev.map(c => c.id === id ? clinicToEdit : c));
+      updateClinic(clinicToEdit.id, clinicToEdit);
+      setClinics(prev => prev.map(c => c.id === clinicToEdit.id ? clinicToEdit : c));
       toast({ title: 'Clinic Updated', description: `${clinicToEdit.name} has been successfully updated.` });
       setEditClinicDialogOpen(false);
       setClinicToEdit(null);
     } catch (error: any) {
-      console.error("Error updating clinic:", error);
       toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
     } finally {
-      setIsCreatingClinic(false);
+      setIsProcessing(false);
     }
   }
   
   const handleDeleteClinic = async () => {
     if (!clinicToDelete) return;
-    setIsDeletingClinic(true);
-
-    const db = getFirestore();
-    const clinicRef = doc(db, 'clinics', clinicToDelete.id);
+    setIsProcessing(true);
+    await new Promise(res => setTimeout(res, 1000));
 
     try {
-      // NOTE: This does not delete the associated Firebase Auth user or their claim.
-      // In a production app, this should be handled by a backend function to ensure data consistency.
-      await deleteDoc(clinicRef);
+      deleteClinic(clinicToDelete.id);
       
       setClinics(prev => prev.filter(c => c.id !== clinicToDelete.id));
       toast({ title: 'Clinic Deleted', description: `${clinicToDelete.name} has been removed.` });
       setClinicToDelete(null);
-      // Close the main edit dialog when deletion is confirmed from within it
       setEditClinicDialogOpen(false); 
     } catch (error: any) {
-      console.error("Error deleting clinic:", error);
       toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
     } finally {
-      setIsDeletingClinic(false);
+      setIsProcessing(false);
     }
   }
 
@@ -770,7 +701,7 @@ export default function AdminPanel() {
             <DialogHeader>
                 <DialogTitle>Enroll New Clinic</DialogTitle>
                 <DialogDescription>
-                    Set up a new clinic account. This will create a Firestore document and set the user's role. The user must already exist in Firebase Authentication.
+                    Set up a new clinic account. This will create a mock clinic and a mock user with a 'clinic' role.
                 </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -799,9 +730,9 @@ export default function AdminPanel() {
                 </div>
             </div>
             <DialogFooter>
-                <Button variant="outline" onClick={() => setCreateClinicDialogOpen(false)} disabled={isCreatingClinic}>Cancel</Button>
-                <Button onClick={handleCreateClinic} disabled={isCreatingClinic}>
-                    {isCreatingClinic ? "Enrolling..." : "Enroll Clinic"}
+                <Button variant="outline" onClick={() => setCreateClinicDialogOpen(false)} disabled={isProcessing}>Cancel</Button>
+                <Button onClick={handleCreateClinic} disabled={isProcessing}>
+                    {isProcessing ? "Enrolling..." : "Enroll Clinic"}
                 </Button>
             </DialogFooter>
         </DialogContent>
@@ -855,22 +786,22 @@ export default function AdminPanel() {
                             <AlertDialogHeader>
                                 <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the <strong>{clinicToDelete.name}</strong> clinic record. The associated authentication user will NOT be deleted or have their role revoked.
+                                    This action cannot be undone. This will permanently delete the <strong>{clinicToDelete.name}</strong> clinic record.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDeleteClinic} disabled={isDeletingClinic}>
-                                    {isDeletingClinic ? "Deleting..." : "Confirm Delete"}
+                                <AlertDialogAction onClick={handleDeleteClinic} disabled={isProcessing}>
+                                    {isProcessing ? "Deleting..." : "Confirm Delete"}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
                         )}
                     </AlertDialog>
                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => setEditClinicDialogOpen(false)} disabled={isCreatingClinic}>Cancel</Button>
-                        <Button onClick={handleUpdateClinic} disabled={isCreatingClinic}>
-                            {isCreatingClinic ? "Saving..." : "Save Changes"}
+                        <Button variant="outline" onClick={() => setEditClinicDialogOpen(false)} disabled={isProcessing}>Cancel</Button>
+                        <Button onClick={handleUpdateClinic} disabled={isProcessing}>
+                            {isProcessing ? "Saving..." : "Save Changes"}
                         </Button>
                     </div>
                 </DialogFooter>
@@ -879,4 +810,3 @@ export default function AdminPanel() {
     )}
     </>
   );
-    

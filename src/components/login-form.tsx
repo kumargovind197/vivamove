@@ -9,37 +9,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { auth, signInWithEmailAndPassword, sendPasswordResetEmail } from '@/lib/firebase';
-import { getIdTokenResult } from 'firebase/auth';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LoginFormProps {
     redirectTo?: string;
 }
 
 export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
-  const [identifier, setIdentifier] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { login } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, identifier, password);
-      
-      // Force refresh of the token to get custom claims for the session
-      await getIdTokenResult(userCredential.user, true);
+      await login(email, password);
 
       toast({
         title: "Login Successful",
         description: `Welcome back! Redirecting...`,
       });
-
-      // Use the explicit redirect path provided by the page.
+      
       router.push(redirectTo);
 
     } catch (error: any) {
@@ -47,9 +43,7 @@ export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
        toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.code === 'auth/invalid-credential' 
-            ? "Invalid credentials. Please check your email and password."
-            : "An unexpected error occurred. Please try again.",
+        description: error.message || "An unexpected error occurred. Please try again.",
       });
     } finally {
         setIsLoading(false);
@@ -57,7 +51,7 @@ export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
   };
   
   const handlePasswordRecovery = async () => {
-    if (!identifier) {
+    if (!email) {
       toast({
         variant: 'destructive',
         title: 'Email Required',
@@ -65,24 +59,10 @@ export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
       });
       return;
     }
-
-    setIsLoading(true);
-    try {
-        await sendPasswordResetEmail(auth, identifier);
-        toast({
-            title: 'Password Recovery Email Sent',
-            description: `If an account exists for ${identifier}, a recovery link has been sent.`,
-        });
-    } catch (error: any) {
-        console.error("Password Reset Error:", error);
-        toast({
-            variant: "destructive",
-            title: 'Password Recovery Failed',
-            description: "Please ensure you have entered a valid email address.",
-        });
-    } finally {
-        setIsLoading(false);
-    }
+    toast({
+        title: 'Password Recovery (Mock)',
+        description: `In a real app, a recovery link would be sent to ${email}.`,
+    });
   }
 
 
@@ -95,13 +75,13 @@ export default function LoginForm({ redirectTo = '/' }: LoginFormProps) {
       <form onSubmit={handleLogin}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="identifier">Email</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="identifier"
+              id="email"
               type="email"
               placeholder="user@example.com"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
               disabled={isLoading}
             />

@@ -2,13 +2,12 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle } from 'lucide-react';
-import { User } from 'firebase/auth';
 import { Skeleton } from './ui/skeleton';
+import type { MockUser } from '@/lib/types';
+
 
 interface DataCardsProps {
-  user: User | null;
+  user: MockUser | null;
   onDataFetched: (data: { steps: number | null, activeMinutes: number | null }) => void;
 }
 
@@ -22,10 +21,9 @@ export default function DataCards({ user, onDataFetched }: DataCardsProps) {
       // Simulate a brief loading period
       setLoading(true);
       
-      // For a more realistic demo, return different data for the mock user vs. a real user
-      const isMock = user?.uid.startsWith('mock-');
-      const steps = isMock ? 5432 : Math.floor(Math.random() * (12000 - 3000 + 1)) + 3000;
-      const activeMinutes = isMock ? 25 : Math.floor(Math.random() * (60 - 15 + 1)) + 15;
+      const isMockPatient = user?.uid === 'patient-123';
+      const steps = isMockPatient ? 5432 : Math.floor(Math.random() * (12000 - 3000 + 1)) + 3000;
+      const activeMinutes = isMockPatient ? 25 : Math.floor(Math.random() * (60 - 15 + 1)) + 15;
 
       onDataFetched({ steps, activeMinutes });
 
@@ -33,7 +31,9 @@ export default function DataCards({ user, onDataFetched }: DataCardsProps) {
       setTimeout(() => setLoading(false), 500);
     };
 
-    generateMockData();
+    if (user) {
+        generateMockData();
+    }
     
   }, [user, onDataFetched]);
   

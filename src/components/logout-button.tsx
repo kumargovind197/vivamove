@@ -15,13 +15,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { LogOut } from 'lucide-react';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LogoutButton() {
   const router = useRouter();
+  const { logout } = useAuth();
 
-  const handleLogout = async () => {
-    await auth.signOut();
+  const handleLogout = () => {
+    logout();
     router.push('/login');
   };
 

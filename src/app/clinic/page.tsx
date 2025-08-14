@@ -7,18 +7,14 @@ import AppHeader from '@/components/app-header';
 import PatientManagement from '@/components/patient-management';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { doc, getDoc, getFirestore } from 'firebase/firestore';
 import { ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getClinicData } from '@/lib/mock-data';
+import type { ClinicData } from '@/lib/types';
 
-type ClinicData = {
-    id: string;
-    name: string;
-    logo: string;
-}
 
 export default function ClinicPage() {
-  const { user, loading, claims } = useAuth();
+  const { user, loading, claims, logout } = useAuth();
   const router = useRouter();
   const [clinicData, setClinicData] = useState<ClinicData | null>(null);
   const [isLoadingClinic, setIsLoadingClinic] = useState(true);
@@ -32,19 +28,10 @@ export default function ClinicPage() {
 
     const fetchClinicData = async () => {
       setIsLoadingClinic(true);
-      const db = getFirestore();
-      // Use the clinicId from the claims to fetch the correct document
-      const clinicRef = doc(db, 'clinics', claims.clinicId); 
-      const clinicSnap = await getDoc(clinicRef);
-
-      if (clinicSnap.exists()) {
-        const data = clinicSnap.data();
-        setClinicData({
-          id: clinicSnap.id,
-          name: data.name,
-          logo: data.logo
-        });
-      }
+      // In a real app, this would be a database call.
+      // Here, we use the mock data function.
+      const data = getClinicData(claims.clinicId);
+      setClinicData(data);
       setIsLoadingClinic(false);
     };
 
@@ -75,7 +62,10 @@ export default function ClinicPage() {
         <p className="mt-2 text-muted-foreground max-w-sm">
           You do not have the required permissions to view this page. Please log in as a clinic user.
         </p>
-        <Button onClick={() => router.push('/clinic/login')} className="mt-6">
+        <Button onClick={() => {
+            logout();
+            router.push('/clinic/login');
+        }} className="mt-6">
           Go to Clinic Login
         </Button>
       </div>

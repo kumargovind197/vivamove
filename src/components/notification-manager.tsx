@@ -3,12 +3,13 @@
 
 import { useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { User } from 'firebase/auth';
 import { getMotivationalMessage } from '@/lib/motivational-messages';
-import { Award, Footprints } from 'lucide-react';
+import { Award } from 'lucide-react';
+import type { MockUser } from '@/lib/types';
+
 
 interface NotificationManagerProps {
-  user: User | null;
+  user: MockUser | null;
   currentSteps: number | null;
   dailyStepGoal: number;
 }
@@ -29,11 +30,12 @@ export default function NotificationManager({ user, currentSteps, dailyStepGoal 
     // Reset notification tracking at the start of a new day
     const now = new Date();
     const lastResetKey = `lastNotificationReset_${user?.uid || 'guest'}`;
-    const lastReset = localStorage.getItem(lastResetKey);
+    // Using sessionStorage instead of localStorage to clear on browser close
+    const lastReset = sessionStorage.getItem(lastResetKey);
     if (!lastReset || new Date(lastReset).getDate() !== now.getDate()) {
         sentNotifications.current.clear();
         notificationsSentToday.current = 0;
-        localStorage.setItem(lastResetKey, now.toISOString());
+        sessionStorage.setItem(lastResetKey, now.toISOString());
     }
 
     if (!user || currentSteps === null || dailyStepGoal === 0) {
