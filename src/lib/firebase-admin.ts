@@ -10,6 +10,12 @@ let app: admin.app.App;
 function getFirebaseAdmin() {
   if (!admin.apps.length) {
     try {
+      // The serviceAccount object is now imported with the values already resolved.
+      // This check ensures we don't try to initialize with an empty/invalid object.
+      if (!serviceAccount || !serviceAccount.project_id) {
+          throw new Error('Service account credentials are not loaded. Check your .env file and src/lib/service-account.ts');
+      }
+
       app = admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
@@ -17,7 +23,7 @@ function getFirebaseAdmin() {
     } catch (e: any) {
       console.error('Firebase Admin SDK initialization error', e.stack);
       // Re-throw the error to make it visible to the caller
-      throw new Error('Failed to initialize Firebase Admin SDK.');
+      throw new Error(`Failed to initialize Firebase Admin SDK: ${e.message}`);
     }
   } else {
     app = admin.app();
