@@ -16,6 +16,7 @@ const serviceAccount = {
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-q5u16%40viva-move.iam.gserviceaccount.com"
 };
 
+
 let app: admin.app.App;
 
 /**
