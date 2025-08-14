@@ -1,18 +1,7 @@
 
 'use server';
 
-import { createClinicWithUser } from "@/ai/flows/create-clinic-flow";
 import { setAdminRole } from "@/ai/flows/set-admin-role-flow";
-
-export async function createClinicAction(clinicData: any) {
-    try {
-        const result = await createClinicWithUser(clinicData);
-        return result;
-    } catch (error) {
-        console.error("Error in createClinicAction:", error);
-        return { success: false, message: (error as Error).message };
-    }
-}
 
 // In a real production app, you would use a secure backend function (like a Firebase Function)
 // to set custom claims. This server action is a stand-in for that.
