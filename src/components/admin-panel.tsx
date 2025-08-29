@@ -14,8 +14,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Switch } from './ui/switch';
 import { getAds, updateAds, getClinics, createClinic, updateClinic, deleteClinic } from '@/lib/mock-data';
 import type { Ad, Clinic } from '@/lib/types';
+import { collection, doc, setDoc, updateDoc, deleteDoc, getDocs,serverTimestamp } from "firebase/firestore";
+import { db, storage } from "@/lib/firebase";
+import { ref, getDownloadURL } from 'firebase/storage';
+import { useRouter } from "next/navigation";
 
-
+import { uploadFile, deleteFile } from '@/lib/firebase-storage'; // Add this import
 const DefaultVivaMoveLogo = (props: React.SVGProps<SVGSVGElement>) => (
     <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="100%" viewBox="0 0 2000 385" enableBackground="new 0 0 2000 385" xmlSpace="preserve" {...props}>
@@ -223,9 +227,11 @@ export default function AdminPanel() {
   const [isEditClinicDialogOpen, setEditClinicDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [clinicToEdit, setClinicToEdit] = useState<Clinic | null>(null);
-  
   const [clinicToDelete, setClinicToDelete] = useState<Clinic | null>(null);
-  
+  const [newClinicLogoFile, setNewClinicLogoFile] = useState<File | null>(null);
+const [editClinicLogoFile, setEditClinicLogoFile] = useState<File | null>(null);
+const [newAdFile, setNewAdFile] = useState<File | null>(null);
+const [vivaMoveLogoUrl, setVivaMoveLogoUrl] = useState<string | null>(null);
   const [newClinic, setNewClinic] = useState({
     name: '',
     email: '',
@@ -252,13 +258,25 @@ export default function AdminPanel() {
 
   }, []);
   
-  const fetchClinics = () => {
-    setIsLoadingClinics(true);
-    const clinicsData = getClinics();
-    setClinics(clinicsData);
-    setIsLoadingClinics(false);
-  };
-
+//   const fetchClinics = () => {
+//     setIsLoadingClinics(true);
+//     const clinicsData = getClinics();
+//     setClinics(clinicsData);
+//     setIsLoadingClinics(false);
+//   };
+useEffect(() => {
+    const fetchLogo = async () => {
+        try {
+            // Assuming a fixed path for the logo
+            const logoRef = ref(storage, 'viva-move/global-logo.svg');
+            const url = await getDownloadURL(logoRef);
+            setVivaMoveLogoUrl(url);
+        } catch (error) {
+            console.error("No logo found in storage, using default.", error);
+        }
+    };
+    fetchLogo();
+}, []);
   const handleVivaMoveLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -306,166 +324,287 @@ export default function AdminPanel() {
     }
   };
 
-  const handleAddAd = (adType: 'popup' | 'footer') => {
-    const adData = adType === 'popup' ? newPopupAd : newFooterAd;
-    if (!adData.imageUrl || !adData.description || !adData.targetUrl) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Please fill out all fields for the ad.' });
-      return;
-    }
-    const newAd = { ...adData, id: new Date().toISOString() };
-    const currentAds = getAds();
-    
-    if (adType === 'popup') {
-        currentAds.popupAds.push(newAd);
-        setPopupAds(currentAds.popupAds);
-        setNewPopupAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
-    } else {
-        currentAds.footerAds.push(newAd);
-        setFooterAds(currentAds.footerAds);
-        setNewFooterAd({ imageUrl: '', description: '', targetUrl: '' }); // Reset form
-    }
-    updateAds(currentAds);
-    toast({ title: 'Success', description: 'New advertisement has been added.' });
-  };
+// New function to add an ad to Firestore
+// ✅ Add Ad
+const handleAddAd = async (adType: 'popup' | 'footer') => {
+  const adData = adType === 'popup' ? newPopupAd : newFooterAd;
+  const collectionName = adType === 'popup' ? 'popupAds' : 'footerAds';
 
-  const handleRemoveAd = (adId: string, adType: 'popup' | 'footer') => {
-    const currentAds = getAds();
-    if (adType === 'popup') {
-        currentAds.popupAds = currentAds.popupAds.filter(ad => ad.id !== adId);
-        setPopupAds(currentAds.popupAds);
-    } else {
-        currentAds.footerAds = currentAds.footerAds.filter(ad => ad.id !== adId);
-        setFooterAds(currentAds.footerAds);
-    }
-    updateAds(currentAds);
-    toast({ title: 'Ad Removed', description: 'The advertisement has been removed.' });
-  };
-
-  const openEditAdDialog = (ad: Ad, adType: 'popup' | 'footer') => {
-    setAdToEdit(ad);
-    setEditAdData({ description: ad.description, targetUrl: ad.targetUrl, imageUrl: ad.imageUrl });
-    setEditAdFileType(adType);
-    setEditAdDialogOpen(true);
+  // Limit check
+  if (adType === 'popup' && popupAds.length >= 2) {
+    toast({ variant: 'destructive', title: 'Limit Reached', description: 'You can only add up to 2 pop-up ads.' });
+    return;
+  }
+  if (adType === 'footer' && footerAds.length >= 2) {
+    toast({ variant: 'destructive', title: 'Limit Reached', description: 'You can only add up to 2 footer ads.' });
+    return;
   }
 
-  const handleUpdateAd = () => {
-    if (!adToEdit || !editAdFileType) return;
+  if (!adData.description || !adData.targetUrl || (!newAdFile && !adData.imageUrl)) {
+    toast({ variant: 'destructive', title: 'Error', description: 'Please fill out all fields and select an image.' });
+    return;
+  }
 
-    const updatedAd = { ...adToEdit, ...editAdData };
-    const currentAds = getAds();
+  setIsProcessing(true);
+  try {
+    const imageUrl = newAdFile
+      ? await uploadFile(newAdFile, `${collectionName}/${newAdFile.name}-${Date.now()}`)
+      : adData.imageUrl;
 
-    if (editAdFileType === 'popup') {
-        currentAds.popupAds = currentAds.popupAds.map(ad => ad.id === adToEdit.id ? updatedAd : ad);
-        setPopupAds(currentAds.popupAds);
+    const adRef = doc(collection(db, collectionName));
+    const newAd = {
+      ...adData,
+      id: adRef.id,
+      imageUrl,
+      createdAt: serverTimestamp(),
+    };
+
+    await setDoc(adRef, newAd);
+
+    // Local state update
+    if (adType === 'popup') {
+      setPopupAds(prev => [...prev, newAd]);
+      setNewPopupAd({ imageUrl: '', description: '', targetUrl: '' });
     } else {
-        currentAds.footerAds = currentAds.footerAds.map(ad => ad.id === adToEdit.id ? updatedAd : ad);
-        setFooterAds(currentAds.footerAds);
+      setFooterAds(prev => [...prev, newAd]);
+      setNewFooterAd({ imageUrl: '', description: '', targetUrl: '' });
     }
 
-    updateAds(currentAds);
+    setNewAdFile(null);
+    toast({ title: 'Success', description: 'New advertisement has been added.' });
+
+  } catch (error: any) {
+    toast({ variant: 'destructive', title: 'Error Adding Ad', description: error.message });
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+// ✅ Remove Ad
+const handleRemoveAd = async (adId: string, adType: 'popup' | 'footer') => {
+  const collectionName = adType === 'popup' ? 'popupAds' : 'footerAds';
+
+  setIsProcessing(true);
+  try {
+    const adRef = doc(db, collectionName, adId);
+    const adToRemove = adType === 'popup' ? popupAds.find(a => a.id === adId) : footerAds.find(a => a.id === adId);
+
+    if (adToRemove) {
+      await deleteFile(adToRemove.imageUrl); // storage se bhi delete
+    }
+    await deleteDoc(adRef);
+
+    if (adType === 'popup') {
+      setPopupAds(prev => prev.filter(ad => ad.id !== adId));
+    } else {
+      setFooterAds(prev => prev.filter(ad => ad.id !== adId));
+    }
+
+    toast({ title: 'Ad Removed', description: 'The advertisement has been removed.' });
+
+  } catch (error: any) {
+    toast({ variant: 'destructive', title: 'Error Deleting Ad', description: error.message });
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+// ✅ Open Edit Dialog
+const openEditAdDialog = (ad: Ad, adType: 'popup' | 'footer') => {
+  setAdToEdit(ad);
+  setEditAdData({ description: ad.description, targetUrl: ad.targetUrl, imageUrl: ad.imageUrl });
+  setEditAdFileType(adType);
+  setEditAdDialogOpen(true);
+};
+
+// ✅ Update Ad
+const handleUpdateAd = async () => {
+  if (!adToEdit || !editAdFileType) return;
+
+  const collectionName = editAdFileType === 'popup' ? 'popupAds' : 'footerAds';
+  const adRef = doc(db, collectionName, adToEdit.id);
+
+  setIsProcessing(true);
+  try {
+    // image upload if new file selected
+    let updatedImageUrl = editAdData.imageUrl;
+    if (newAdFile) {
+      updatedImageUrl = await uploadFile(newAdFile, `${collectionName}/${newAdFile.name}-${Date.now()}`);
+    }
+
+    const updatedAd = { ...adToEdit, ...editAdData, imageUrl: updatedImageUrl };
+    await updateDoc(adRef, updatedAd);
+
+    // update local state
+    if (editAdFileType === 'popup') {
+      setPopupAds(prev => prev.map(ad => ad.id === adToEdit.id ? updatedAd : ad));
+    } else {
+      setFooterAds(prev => prev.map(ad => ad.id === adToEdit.id ? updatedAd : ad));
+    }
+
     toast({ title: 'Ad Updated', description: 'The advertisement has been successfully modified.' });
     setEditAdDialogOpen(false);
     setAdToEdit(null);
-  };
+    setNewAdFile(null);
+
+  } catch (error: any) {
+    toast({ variant: 'destructive', title: 'Error Updating Ad', description: error.message });
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
   
-  const handleClinicLogoSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'new' | 'edit') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        if (type === 'new') {
-            setNewClinic(p => ({ ...p, logo: result }));
-        } else {
-            setClinicToEdit(p => p ? { ...p, logo: result} : null);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+const handleClinicLogoSelect = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  type: 'new' | 'edit'
+) => {
+  const file = e.target.files?.[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      if (type === 'new') {
+        setNewClinic(prev => ({ ...prev, logo: result }));
+        setNewClinicLogoFile(file);
+      } else {
+        setClinicToEdit(prev => prev ? { ...prev, logo: result } : null);
+        setEditClinicLogoFile(file);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+};
 
-  const handleCreateClinic = async () => {
-    if (!newClinic.name || !newClinic.email) {
-      toast({
-        variant: 'destructive',
-        title: 'Missing Information',
-        description: 'Please provide at least a clinic name and email.',
-      });
-      return;
-    }
-    setIsProcessing(true);
-    
-    // Simulate network delay
-    await new Promise(res => setTimeout(res, 1000));
-    
-    try {
-      createClinic({
-          ...newClinic,
-          logo: newClinic.logo || 'https://placehold.co/200x80.png',
-      });
-      
-      toast({
-          title: 'Clinic Created Successfully',
-          description: `Clinic ${newClinic.name} has been added and the user role has been set.`,
-      });
-      
-      fetchClinics(); // Re-fetch to get the latest data
-      setCreateClinicDialogOpen(false);
-      setNewClinic({ name: '', email: '', logo: '', capacity: 100, adsEnabled: false });
 
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error Creating Clinic',
-        description: error.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
 
-  const openEditClinicDialog = (clinic: Clinic) => {
-    setClinicToEdit(clinic);
-    setEditClinicDialogOpen(true);
+/// FETCH clinics from Firestore
+// FETCH clinics from Firestore (new collection)
+const fetchClinics = async () => {
+  setIsLoadingClinics(true);
+  try {
+    const querySnap = await getDocs(collection(db, "newClinics")); // 👈 new collection
+    const clinicsData = querySnap.docs.map((doc) => ({
+      id: doc.id,
+      ...(doc.data() as any),
+    }));
+    setClinics(clinicsData as Clinic[]);
+  } catch (error: any) {
+    toast({
+      variant: "destructive",
+      title: "Error Fetching Clinics",
+      description: error.message || "Failed to load clinics",
+    });
+  } finally {
+    setIsLoadingClinics(false);
+  }
+};
+
+// CREATE clinic (with auto ID in newClinics)
+const handleCreateClinic = async () => {
+  if (!newClinic.name || !newClinic.email) {
+    toast({
+      variant: "destructive",
+      title: "Missing Information",
+      description: "Please provide at least a clinic name and email.",
+    });
+    return;
   }
 
-  const handleUpdateClinic = async () => {
+  setIsProcessing(true);
+  await new Promise((res) => setTimeout(res, 500));
+
+  try {
+    const clinicRef = doc(collection(db, "newClinics")); // 👈 new collection
+    await setDoc(clinicRef, {
+      ...newClinic,
+      id: clinicRef.id,
+      logo: newClinic.logo || "https://placehold.co/200x80.png",
+      createdAt: serverTimestamp(),
+    });
+
+    toast({ title: "Clinic Created", description: `${newClinic.name} added.` });
+    fetchClinics();
+    setCreateClinicDialogOpen(false);
+    setNewClinic({ name: "", email: "", logo: "", capacity: 100, adsEnabled: false });
+  } catch (error: any) {
+    toast({
+      variant: "destructive",
+      title: "Error Creating Clinic",
+      description: error.message,
+    });
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+// UPDATE clinic
+const handleUpdateClinic = async () => {
     if (!clinicToEdit) return;
     setIsProcessing(true);
-    await new Promise(res => setTimeout(res, 1000));
-    
     try {
-      updateClinic(clinicToEdit.id, clinicToEdit);
-      setClinics(prev => prev.map(c => c.id === clinicToEdit.id ? clinicToEdit : c));
-      toast({ title: 'Clinic Updated', description: `${clinicToEdit.name} has been successfully updated.` });
-      setEditClinicDialogOpen(false);
-      setClinicToEdit(null);
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
-    } finally {
-      setIsProcessing(false);
-    }
-  }
-  
-  const handleDeleteClinic = async () => {
-    if (!clinicToDelete) return;
-    setIsProcessing(true);
-    await new Promise(res => setTimeout(res, 1000));
+        let newLogoUrl = clinicToEdit.logo;
+        if (editClinicLogoFile) {
+            // If a new logo was uploaded, delete the old one first (optional but good practice)
+            if (clinicToEdit.logo && !clinicToEdit.logo.includes("placehold.co")) {
+                await deleteFile(clinicToEdit.logo);
+            }
+            // Upload the new logo
+            newLogoUrl = await uploadFile(editClinicLogoFile, `clinic-logos/${editClinicLogoFile.name}-${Date.now()}`);
+        }
 
-    try {
-      deleteClinic(clinicToDelete.id);
-      
-      setClinics(prev => prev.filter(c => c.id !== clinicToDelete.id));
-      toast({ title: 'Clinic Deleted', description: `${clinicToDelete.name} has been removed.` });
-      setClinicToDelete(null);
-      setEditClinicDialogOpen(false); 
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+        const clinicRef = doc(db, "newClinics", clinicToEdit.id);
+        await updateDoc(clinicRef, {
+            ...clinicToEdit,
+            logo: newLogoUrl,
+            updatedAt: serverTimestamp(),
+        });
+        // ... (rest of the function)
     } finally {
-      setIsProcessing(false);
+        setIsProcessing(false);
+        setEditClinicLogoFile(null); // Clear the file after use
     }
-  }
+};
+// DELETE clinic
+const handleDeleteClinic = async () => {
+  if (!clinicToDelete) return;
 
+  setIsProcessing(true);
+  await new Promise((res) => setTimeout(res, 500));
+
+  try {
+    const clinicRef = doc(db, "newClinics", clinicToDelete.id); // 👈 new collection
+    await deleteDoc(clinicRef);
+
+    toast({ title: "Clinic Deleted", description: `${clinicToDelete.name} removed.` });
+    setClinicToDelete(null);
+    setEditClinicDialogOpen(false);
+    fetchClinics();
+  } catch (error: any) {
+    toast({
+      variant: "destructive",
+      title: "Deletion Failed",
+      description: error.message,
+    });
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
+// FUNCTION to open edit modal
+const openEditClinicDialog = (clinic: Clinic) => {
+  setClinicToEdit(clinic);
+  setEditClinicDialogOpen(true);
+};
+
+ const router = useRouter();
+
+  useEffect(() => {
+    const isAdmin = localStorage.getItem("isAdmin");
+    if (isAdmin !== "true") {
+      router.push("/login"); // agar admin flag set na ho, signin page bhejo
+    }
+  }, [router]);
 
   return (
     <>
@@ -520,9 +659,14 @@ export default function AdminPanel() {
                                                     <p className="text-muted-foreground text-xs text-right">Capacity</p>
                                                     <p className="font-semibold">{clinic.capacity}</p>
                                                 </div>
-                                                <Button variant="ghost" size="icon" onClick={() => openEditClinicDialog(clinic)}>
-                                                    <Edit className="h-4 w-4 text-muted-foreground"/>
-                                                </Button>
+                                               <Button
+  variant="ghost"
+  size="icon"
+  onClick={() => openEditClinicDialog(clinic)}
+>
+  <Edit className="h-4 w-4 text-muted-foreground" />
+</Button>
+
                                             </div>
                                         </div>
                                     ))
@@ -809,4 +953,4 @@ export default function AdminPanel() {
         </Dialog>
     )}
     </>
-  );
+  )}

@@ -1,6 +1,7 @@
 
 export type MockUser = {
   uid: string;
+  
   email: string;
   displayName: string;
   password?: string; // Should not be sent to client in real app

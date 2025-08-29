@@ -13,8 +13,9 @@ import { Slider } from './ui/slider';
 import { cn } from '@/lib/utils';
 import { getDashboardMessage } from '@/lib/motivational-messages';
 import type { ClinicData, MockUser } from '@/lib/types';
-
-
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase"; 
+import { useRouter } from "next/navigation";  
 // --- MOCK LOCAL DEVICE STORAGE ---
 const generateInitialLocalData = () => {
     const data = [];
@@ -48,7 +49,9 @@ const chartConfigDailyAverage = {
 };
 
 type ClientDashboardProps = {
+  
   user: MockUser | null;
+  
   fitData: {
       steps: number | null;
       activeMinutes: number | null;
@@ -81,10 +84,69 @@ const StepStaircase = ({ progress }: { progress: number }) => (
 export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGoalChange, view, clinic }: ClientDashboardProps) {
   const [isGoalDialogOpen, setGoalDialogOpen] = useState(false);
   const [pendingStepGoal, setPendingStepGoal] = useState(dailyStepGoal);
-  
+  const [checkingRole, setCheckingRole] = useState(true);
+
+ const router = useRouter();
+useEffect(() => {
+  if (!user) return; // This is the likely culprit
+
+  const checkRole = async () => {
+    try {
+      const userDoc = await getDoc(doc(db, "userRolepatients", user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.role === "patient") {
+          setPatient({ id: userDoc.id, ...userData } as Patient);
+        } else {
+          router.push("/login"); // sirf tabhi jab role galat ho
+        }
+      } 
+    } catch (err) {
+      console.error("Error checking role:", err);
+      router.push("/login");
+    } finally {
+      setCheckingRole(false);
+    }
+  };
+
+  checkRole();
+}, [user, router]);
   // This state now simulates the data stored locally on the user's phone.
   const [localDeviceData, setLocalDeviceData] = useState<any[]>([]);
   const [dashboardMessage, setDashboardMessage] = useState<string | null>(null);
+type Patient = {
+  id: string;
+  uhid: string;
+  firstName: string;
+  surname: string;
+  email: string;
+  age: number;
+  gender: string;
+};
+
+
+const [patient, setPatient] = useState<Patient | null>(null);
+useEffect(() => {
+  if (!clinic?.id || !user?.uid) return;
+
+  const fetchPatient = async () => {
+    try {
+      const patientRef = doc(db, "userRolepatients", user.uid);
+      const patientSnap = await getDoc(patientRef);
+
+      if (patientSnap.exists()) {
+        setPatient({ id: patientSnap.id, ...patientSnap.data() } as Patient);
+      } else {
+        // yahan sirf warning do, redirect mat karo
+        console.warn("Patient document not found in clinic");
+      }
+    } catch (error) {
+      console.error("Error fetching patient:", error);
+    }
+  };
+
+  fetchPatient();
+}, [clinic?.id, user?.uid]);
 
   useEffect(() => {
     // Generate mock data on client-side only to prevent hydration mismatch
@@ -197,13 +259,17 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
 
   const daysMetProgress = monthlyData.length > 0 ? (daysStepGoalMetMonthly / monthlyData.length) * 100 : 0;
 
+
+
   return (
     <>
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 items-center">
             {/* Welcome Section */}
             <div className="space-y-1">
-                <h1 className="font-headline text-2xl font-bold tracking-tight">Welcome back, {user?.displayName?.split(' ')[0] || 'User'}!</h1>
+<h1 className="font-headline text-2xl font-bold tracking-tight">
+  Welcome back, {patient?.firstName || "User"}!
+</h1>
                 <p className="text-muted-foreground text-sm">Here's your activity summary.</p>
             </div>
 

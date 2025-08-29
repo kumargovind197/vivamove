@@ -28,8 +28,8 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from './ui/t
 import { Skeleton } from './ui/skeleton';
 import { getClinicData, getPatientsForClinic, addPatientToClinic, updatePatientInClinic, removePatientFromClinic } from '@/lib/mock-data';
 import type { Patient } from '@/lib/types';
-
-
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { db } from "@/lib/firebase"; 
 interface PatientManagementProps {
   clinicId: string | null;
 }
@@ -87,10 +87,22 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchPatientsAndClinic();
-  }, [clinicId]);
-  
+useEffect(() => {
+  if (!clinicId) return;
+
+  const fetchPatients = async () => {
+    const querySnapshot = await getDocs(collection(db, "clinics", clinicId, "patients"));
+    const patientsData = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+    setPatientsData(patientsData as Patient[]);
+    setLoading(false);
+  };
+
+  fetchPatients();
+}, [clinicId]);
+
 
   const filteredPatients = useMemo(() => {
     let patients = patientsData;
@@ -184,89 +196,82 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
     }
   };
 
-  const handleAddPatient = async () => {
-    if (!clinicId || !newPatient.uhid || !newPatient.firstName || !newPatient.surname || !newPatient.email || !newPatient.age || !newPatient.gender) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Please fill out all fields to add a patient.",
-      });
-      return;
-    }
 
-    setLoading(true);
-    await new Promise(res => setTimeout(res, 500)); // Simulate async
-    
-    try {
-        const patientData = {
-            ...newPatient,
-            age: parseInt(newPatient.age),
-        };
+const handleAddPatient = async () => {
+  if (!clinicId) return;
+  setLoading(true);
 
-        addPatientToClinic(clinicId, patientData);
+  try {
+    const patientsRef = collection(db, "clinics", clinicId, "patients");
+    const docRef = await addDoc(patientsRef, {
+      ...newPatient,
+      age: Number(newPatient.age),
+      createdAt: new Date(),
+    });
 
-        toast({
-            title: "Patient Registered Successfully",
-            description: `${newPatient.firstName} has been added.`,
-        });
-        fetchPatientsAndClinic();
-        setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
-        setAddPatientDialogOpen(false);
-    } catch (error: any) {
-        toast({ variant: "destructive", title: "Registration Failed", description: error.message });
-    } finally {
-        setLoading(false);
-    }
+    // locally bhi update kardo (age ko number banao)
+    setPatientsData([
+      ...patientsData,
+      { ...newPatient, age: Number(newPatient.age), id: docRef.id },
+    ]);
+
+    setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
+    setAddPatientDialogOpen(false);
+
+    toast({ title: "Success", description: "Patient added successfully" });
+  } catch (error: any) {
+    toast({ variant: "destructive", title: "Error", description: error.message });
+  } finally {
+    setLoading(false);
   }
+};
 
-  const handleEditPatient = async () => {
-      if (!patientToEdit || !clinicId) return;
 
-      setLoading(true);
-      await new Promise(res => setTimeout(res, 500));
-      
-      try {
-        const updatedData = {
-          ...patientToEdit,
-          age: typeof patientToEdit.age === 'string' ? parseInt(patientToEdit.age) : patientToEdit.age,
-        };
 
-        updatePatientInClinic(clinicId, patientToEdit.id, updatedData);
-        
-        toast({
-            title: "Patient Details Updated",
-            description: `Details for ${patientToEdit.firstName} ${patientToEdit.surname} have been saved.`,
-        });
-        fetchPatientsAndClinic();
-        setEditPatientDialogOpen(false);
-        setPatientToEdit(null);
-      } catch (error: any) {
-          toast({ variant: "destructive", title: "Update Failed", description: error.message });
-      } finally {
-          setLoading(false);
-      }
+
+const handleEditPatient = async () => {
+  if (!patientToEdit || !clinicId) return;
+
+  setLoading(true);
+  try {
+    const patientRef = doc(db, "clinics", clinicId, "patients", patientToEdit.id);
+    await updateDoc(patientRef, {
+      ...patientToEdit,
+      age: Number(patientToEdit.age),
+    });
+
+    setPatientsData(patientsData.map(p =>
+      p.id === patientToEdit.id ? { ...p, ...patientToEdit } : p
+    ));
+
+    setEditPatientDialogOpen(false);
+    setPatientToEdit(null);
+
+    toast({ title: "Updated", description: "Patient updated successfully" });
+  } catch (error: any) {
+    toast({ variant: "destructive", title: "Error", description: error.message });
+  } finally {
+    setLoading(false);
   }
+};
 
-  const handleRemovePatient = async (patient: Patient) => {
-      if (!clinicId) return;
-      setLoading(true);
-      await new Promise(res => setTimeout(res, 500));
-      
-      try {
-        removePatientFromClinic(clinicId, patient.id);
-        toast({
-            title: "Patient Removed",
-            description: `${patient.firstName} ${patient.surname} has been removed from your clinic.`,
-        });
-        fetchPatientsAndClinic();
-      } catch (error: any) {
-         toast({ variant: "destructive", title: "Removal Failed", description: error.message });
-      } finally {
-        setPatientToRemove(null);
-        setDeleteConfirmationInput('');
-        setLoading(false);
-      }
+const handleRemovePatient = async (patient: Patient) => {
+  if (!clinicId) return;
+
+  setLoading(true);
+  try {
+    await deleteDoc(doc(db, "clinics", clinicId, "patients", patient.id));
+    setPatientsData(patientsData.filter(p => p.id !== patient.id));
+    setPatientToRemove(null);
+
+    toast({ title: "Deleted", description: "Patient removed successfully" });
+  } catch (error: any) {
+    toast({ variant: "destructive", title: "Error", description: error.message });
+  } finally {
+    setLoading(false);
   }
+};
+
 
 
   const handleOpenMessageDialog = () => {
@@ -461,28 +466,73 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
                 </div>
                 <div className="rounded-lg border">
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>UHID</TableHead>
-                        <TableHead>First Name</TableHead>
-                        <TableHead>Surname</TableHead>
-                        <TableHead>Email</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredPatients.map(patient => (
-                        <TableRow 
-                          key={patient.id} 
-                          onClick={(e) => handleRowClick(e, patient.id)}
-                          className="cursor-pointer hover:bg-muted/50"
-                        >
-                          <TableCell className="font-mono">{patient.uhid}</TableCell>
-                          <TableCell className="font-medium">{patient.firstName}</TableCell>
-                          <TableCell className="font-medium">{patient.surname}</TableCell>
-                          <TableCell>{patient.email}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
+               <TableHeader>
+  <TableRow>
+    <TableHead>UHID</TableHead>
+    <TableHead>Full Name</TableHead>
+    <TableHead>Email</TableHead>
+    <TableHead className="text-right">Actions</TableHead>
+  </TableRow>
+</TableHeader>
+   <TableBody>
+                        {filteredPatients.map(patient => (
+                            <TableRow key={patient.id}>
+                            <TableCell className="font-mono">{patient.uhid}</TableCell>
+                            <TableCell className="font-medium">{`${patient.firstName} ${patient.surname}`}</TableCell>
+                            <TableCell>{patient.email}</TableCell>
+                               <TableHead>Actions</TableHead> 
+                            <TableCell className="text-right">
+                                <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" data-action-button="true" onClick={() => {
+                                    setPatientToEdit(patient);
+                                    setEditPatientDialogOpen(true);
+                                }}>
+                                    <Edit className="mr-2 h-3 w-3" />
+                                    Edit
+                                </Button>
+                                <AlertDialog onOpenChange={(open) => !open && setDeleteConfirmationInput('')}>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm" data-action-button="true" onClick={() => setPatientToRemove(patient)}>
+                                            <Trash2 className="mr-2 h-3 w-3" />
+                                            Remove
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    {patientToRemove && patientToRemove.id === patient.id && (
+                                        <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently remove <span className="font-semibold">{`${patient.firstName} ${patient.surname}`}</span> from your clinic's patient list.
+                                            <br/><br/>
+                                            To confirm, please type <strong className="text-foreground">delete</strong> below.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <Input 
+                                            id="delete-confirm"
+                                            value={deleteConfirmationInput}
+                                            onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                                            className="mt-2"
+                                            autoFocus
+                                        />
+                                        <AlertDialogFooter className='mt-4'>
+                                            <AlertDialogCancel onClick={() => setPatientToRemove(null)}>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction 
+                                                onClick={() => handleRemovePatient(patient)}
+                                                disabled={deleteConfirmationInput !== 'delete' || loading}
+                                                className={buttonVariants({ variant: "destructive" })}
+                                            >
+                                            {loading ? 'Removing...' : 'Proceed'}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    )}
+                                    </AlertDialog>
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+
                   </Table>
                 </div>
             </TabsContent>
@@ -541,6 +591,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
                             <TableHead>Full Name</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
+                               <TableHead>Actions</TableHead> 
                         </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -549,6 +600,7 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
                             <TableCell className="font-mono">{patient.uhid}</TableCell>
                             <TableCell className="font-medium">{`${patient.firstName} ${patient.surname}`}</TableCell>
                             <TableCell>{patient.email}</TableCell>
+                               <TableHead>Actions</TableHead> 
                             <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
                                 <Button variant="outline" size="sm" data-action-button="true" onClick={() => {
@@ -653,7 +705,10 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddPatientDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddPatient} disabled={loading}>{loading ? "Registering..." : "Add Patient"}</Button>
+           <Button onClick={handleAddPatient} disabled={loading}>
+  {loading ? "Registering..." : "Add Patient"}
+</Button>
+
           </DialogFooter>
         </DialogContent>
       </Dialog>
