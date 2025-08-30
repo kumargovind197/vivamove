@@ -28,7 +28,7 @@ import { Tooltip, TooltipProvider, TooltipContent, TooltipTrigger } from './ui/t
 import { Skeleton } from './ui/skeleton';
 import { getClinicData, getPatientsForClinic, addPatientToClinic, updatePatientInClinic, removePatientFromClinic } from '@/lib/mock-data';
 import type { Patient } from '@/lib/types';
-import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase"; 
 import { getAdditionalUserInfo, getAuth, onAuthStateChanged } from 'firebase/auth';
 
@@ -78,18 +78,42 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
 
  const router = useRouter();
   const auth = getAuth();
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push("/login"); // agar login nahi h to login page par bhej do
-      } else {
-        setCurrentUser(user);
-      }
-     
-    });
 
-    return () => unsubscribe();
-  }, [auth, router]);
+
+useEffect(() => {
+  const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      router.push("/login"); // Not logged in
+    } else {
+      const userDocRef = doc(db, "userRolepatients", user.uid);
+      const clinicDocRef = doc(db, "userRoleclinics", user.uid);
+
+      // Try both collections
+      const [patientSnap, clinicSnap] = await Promise.all([
+        getDoc(userDocRef),
+        getDoc(clinicDocRef)
+      ]);
+
+      if (clinicSnap.exists()) {
+        setCurrentUser(user);
+        // ✅ This is a clinic user, allow access
+      } else {
+        // ❌ Not a clinic user — redirect to home or show error
+        toast({
+          title: "Access Denied",
+          description: "You are not authorized to view this page.",
+          variant: "destructive",
+        });
+        router.push("/");
+      }
+    }
+  });
+
+  return () => unsubscribe();
+}, [auth, router]);
+
+
+
 
   const fetchPatientsAndClinic = () => {
     if (!clinicId) return;
