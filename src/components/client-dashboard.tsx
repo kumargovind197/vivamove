@@ -16,6 +16,8 @@ import type { ClinicData, MockUser } from '@/lib/types';
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase"; 
 import { useRouter } from "next/navigation";  
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+
 // --- MOCK LOCAL DEVICE STORAGE ---
 const generateInitialLocalData = () => {
     const data = [];
@@ -85,8 +87,28 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   const [isGoalDialogOpen, setGoalDialogOpen] = useState(false);
   const [pendingStepGoal, setPendingStepGoal] = useState(dailyStepGoal);
   const [checkingRole, setCheckingRole] = useState(true);
+ const [currentUser, setCurrentUser] = useState<any>(null);
 
  const router = useRouter();
+
+
+
+   const auth = getAuth();
+   useEffect(() => {
+     const unsubscribe = onAuthStateChanged(auth, (user) => {
+       if (!user) {
+         router.push("/login"); // agar login nahi h to login page par bhej do
+       } else {
+         setCurrentUser(user);
+       }
+      
+     });
+ 
+     return () => unsubscribe();
+   }, [auth, router]);
+ 
+
+
 useEffect(() => {
   if (!user) return; // This is the likely culprit
 
