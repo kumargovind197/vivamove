@@ -29,7 +29,10 @@ import { Skeleton } from './ui/skeleton';
 import { getClinicData, getPatientsForClinic, addPatientToClinic, updatePatientInClinic, removePatientFromClinic } from '@/lib/mock-data';
 import type { Patient } from '@/lib/types';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "firebase/firestore";
-import { db } from "@/lib/firebase"; 
+import { auth, db } from "@/lib/firebase"; 
+import { getAdditionalUserInfo, getAuth, onAuthStateChanged } from 'firebase/auth';
+
+
 interface PatientManagementProps {
   clinicId: string | null;
 }
@@ -69,11 +72,24 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
   const [selectedPatientIds, setSelectedPatientIds] = useState<string[]>([]);
   const [isMessageDialogOpen, setMessageDialogOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState('');
-  
   const [clinicCapacity, setClinicCapacity] = useState(0);
-
-  const router = useRouter();
   const { toast } = useToast();
+ const [currentUser, setCurrentUser] = useState<any>(null);
+
+ const router = useRouter();
+  const auth = getAuth();
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        router.push("/login"); // agar login nahi h to login page par bhej do
+      } else {
+        setCurrentUser(user);
+      }
+     
+    });
+
+    return () => unsubscribe();
+  }, [auth, router]);
 
   const fetchPatientsAndClinic = () => {
     if (!clinicId) return;
