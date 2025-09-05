@@ -238,6 +238,7 @@ const [vivaMoveLogoUrl, setVivaMoveLogoUrl] = useState<string | null>(null);
     logo: '',
     capacity: 100,
     adsEnabled: false,
+    password:''
   });
 
   const { toast } = useToast();
@@ -526,7 +527,7 @@ const handleCreateClinic = async () => {
     toast({ title: "Clinic Created", description: `${newClinic.name} added.` });
     fetchClinics();
     setCreateClinicDialogOpen(false);
-    setNewClinic({ name: "", email: "", logo: "", capacity: 100, adsEnabled: false });
+    setNewClinic({ name: "", email: "", logo: "", capacity: 100, adsEnabled: false ,password: "" });
   } catch (error: any) {
     toast({
       variant: "destructive",
@@ -857,6 +858,16 @@ const openEditClinicDialog = (clinic: Clinic) => {
                     <Label htmlFor="clinic-email">Clinic Login Email</Label>
                     <Input id="clinic-email" type="email" value={newClinic.email} onChange={(e) => setNewClinic(p => ({...p, email: e.target.value}))} placeholder="clinic@example.com" />
                 </div>
+                <div className="space-y-2">
+    <Label htmlFor="clinic-password">Clinic Password</Label>
+    <Input
+        id="clinic-password"
+        type="password"
+        value={newClinic.password}
+        onChange={(e) => setNewClinic(p => ({...p, password: e.target.value}))}
+        placeholder="Set a password for clinic login"
+    />
+</div>
                  <div className="space-y-2">
                     <Label htmlFor="clinic-logo">Clinic Logo (Optional)</Label>
                     <div className="flex items-center gap-4">

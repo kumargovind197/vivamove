@@ -88,25 +88,31 @@ export default function ClientDashboard({ user, fitData, dailyStepGoal, onStepGo
   const [pendingStepGoal, setPendingStepGoal] = useState(dailyStepGoal);
   const [checkingRole, setCheckingRole] = useState(true);
  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [patent, setPatent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
- const router = useRouter();
-
-
-
-   const auth = getAuth();
-   useEffect(() => {
-     const unsubscribe = onAuthStateChanged(auth, (user) => {
-       if (!user) {
-         router.push("/login"); // agar login nahi h to login page par bhej do
-       } else {
-         setCurrentUser(user);
-       }
-      
-     });
- 
-     return () => unsubscribe();
-   }, [auth, router]);
- 
+  useEffect(() => {
+    const storedPatientId = typeof window !== "undefined" ? localStorage.getItem("patientId") : null;
+    const storedClinicId = typeof window !== "undefined" ? localStorage.getItem("clinicId") : null;
+    if (!storedPatientId || !storedClinicId) {
+      router.push("/login");
+      return;
+    }
+    // Check if patient exists in Firestore
+    const checkPatient = async () => {
+      const patientRef = doc(db, "clinics", storedClinicId, "patients", storedPatientId);
+      const patientSnap = await getDoc(patientRef);
+      if (!patientSnap.exists()) {
+        localStorage.removeItem("patientId");
+        router.push("/login");
+      } else {
+        setPatent({ id: patientSnap.id, ...patientSnap.data() });
+        setLoading(false);
+      }
+    };
+    checkPatient();
+  }, [router]);
 
 
 useEffect(() => {

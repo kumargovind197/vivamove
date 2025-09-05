@@ -68,49 +68,38 @@ export default function PatientManagement({ clinicId }: PatientManagementProps) 
   const [patientToEdit, setPatientToEdit] = useState<Patient | null>(null);
   const [patientToRemove, setPatientToRemove] = useState<Patient | null>(null);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
-  const [newPatient, setNewPatient] = useState({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
+  const [newPatient, setNewPatient] = useState({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '',  password: ''  });
   const [selectedPatientIds, setSelectedPatientIds] = useState<string[]>([]);
   const [isMessageDialogOpen, setMessageDialogOpen] = useState(false);
   const [bulkMessage, setBulkMessage] = useState('');
   const [clinicCapacity, setClinicCapacity] = useState(0);
   const { toast } = useToast();
  const [currentUser, setCurrentUser] = useState<any>(null);
-
+  const [clinicid, setClinicId] = useState<string | null>(null);
  const router = useRouter();
   const auth = getAuth();
 
-
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      router.push("/login"); // Not logged in
-    } else {
-      const userDocRef = doc(db, "userRolepatients", user.uid);
-      const clinicDocRef = doc(db, "userRoleclinics", user.uid);
-
-      // Try both collections
-      const [patientSnap, clinicSnap] = await Promise.all([
-        getDoc(userDocRef),
-        getDoc(clinicDocRef)
-      ]);
-
-      if (clinicSnap.exists()) {
-        setCurrentUser(user);
-        // ✅ This is a clinic user, allow access
-      } else {
-        // ❌ Not a clinic user — redirect to home or show error
-        toast({
-          title: "Access Denied",
-          description: "You are not authorized to view this page.",
-          variant: "destructive",
-        });
-        router.push("/");
-      }
+ useEffect(() => {
+    const storedClinicId = typeof window !== "undefined" ? localStorage.getItem("clinicId") : null;
+    if (!storedClinicId) {
+      router.push("/login");
+      return;
     }
-  });
-
-  return () => unsubscribe();
-}, [auth, router]);
+    // Check if clinic exists in Firestore
+    const checkClinic = async () => {
+      const clinicRef = doc(db, "newClinics", storedClinicId);
+      const clinicSnap = await getDoc(clinicRef);
+      if (!clinicSnap.exists()) {
+        localStorage.removeItem("clinicId");
+        localStorage.removeItem("clinicName");
+        router.push("/login");
+      } else {
+        setClinicId(storedClinicId);
+        setLoading(false);
+      }
+    };
+    checkClinic();
+  }, [router]);
 
 
 
@@ -255,7 +244,7 @@ const handleAddPatient = async () => {
       { ...newPatient, age: Number(newPatient.age), id: docRef.id },
     ]);
 
-    setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '' });
+    setNewPatient({ uhid: '', firstName: '', surname: '', email: '', age: '', gender: '',password: '' });
     setAddPatientDialogOpen(false);
 
     toast({ title: "Success", description: "Patient added successfully" });
@@ -724,6 +713,17 @@ const handleRemovePatient = async (patient: Patient) => {
               <Label htmlFor="email" className="text-right">Email</Label>
               <Input id="email" type="email" value={newPatient.email} onChange={handleInputChange} className="col-span-3" />
             </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+  <Label htmlFor="password" className="text-right">Password</Label>
+  <Input
+    id="password"
+    type="password"
+    value={newPatient.password}
+    onChange={handleInputChange}
+    className="col-span-3"
+    placeholder="Set patient password"
+  />
+</div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="age" className="text-right">Age</Label>
               <Input id="age" type="number" value={newPatient.age} onChange={handleInputChange} className="col-span-3" />

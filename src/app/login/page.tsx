@@ -3,10 +3,16 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+type Clinic = {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+  // add other fields if needed
+};
 
 export default function SigninPage() {
   const [email, setEmail] = useState('');
@@ -20,50 +26,51 @@ const handleSignin = async (e: React.FormEvent) => {
   setLoading(true);
 
   try {
-    // ✅ Direct Admin login (without Firebase)
+    // ✅ Direct Admin login
     if (email === "admin123@gmail.com" && password === "admin123") {
       localStorage.setItem("isAdmin", "true");
       router.push('/admin');
-      return; // Return here to prevent further execution
+      return;
     }
 
-    // 🔐 Normal Firebase auth
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-
-    // 🔎 Role check in Firestore
-    const patientDoc = await getDoc(doc(db, 'userRolepatients', user.uid));
-    const clinicDoc = await getDoc(doc(db, 'userRoleclinics', user.uid));
-
-    if (patientDoc.exists()) {
-      router.push('/');  // Patient dashboard
-    } else if (clinicDoc.exists()) {
-      router.push('/clinic');    // Clinic dashboard
-    } else {
-      // If no role is found, it's an error. Display a message, don't redirect.
-      console.warn("User has no assigned role. Redirecting to login to prevent loops.");
-      // You can also sign them out here to be safe
-      await auth.signOut();
-      setError('Your account is not assigned a role. Please contact support.');
+    // 🔎 Clinic Owner login
+    const clinicsSnap = await getDocs(collection(db, "newClinics"));
+    const clinics: Clinic[] = clinicsSnap.docs.map(
+      doc => ({ id: doc.id, ...(doc.data() as Omit<Clinic, "id">) })
+    );
+    const foundClinic = clinics.find(
+      (c) => c.email.trim().toLowerCase() === email.trim().toLowerCase() && c.password === password
+    );
+    if (foundClinic) {
+      localStorage.setItem("clinicId", foundClinic.id);
+      localStorage.setItem("clinicName", foundClinic.name);
+      router.push(`/clinic`);
+      return;
     }
+
+     // 🔎 Patient login (only in 'wellness-clinic')
+    const patientsSnap = await getDocs(collection(db, "clinics", "wellness-clinic", "patients"));
+    const patients = patientsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const foundPatient = patients.find(
+      (p: any) =>
+        p.email?.trim().toLowerCase() === email.trim().toLowerCase() &&
+        p.password === password
+    );
+    if (foundPatient) {
+      localStorage.setItem("patientId", foundPatient.id);
+      localStorage.setItem("clinicId", "wellness-clinic");
+      router.push(`/`); // Change to your patient dashboard route
+      return;
+    
+    }
+
+    setError('Invalid email or password. Please try again.');
   } catch (err: any) {
-    console.error('Signin error:', err.message);
-    let errorMessage = 'An unexpected error occurred. Please try again.';
-
-    if (err.code === 'auth/invalid-credential') {
-      errorMessage = 'Invalid email or password. Please try again.';
-    } else if (err.code === 'auth/network-request-failed') {
-      errorMessage = 'Network error. Please check your internet connection.';
-    } else if (err.code === 'auth/user-not-found') {
-      errorMessage = 'User not found. Please check your email or sign up.';
-    }
-
-    setError(errorMessage);
+    setError('An unexpected error occurred. Please try again.');
   } finally {
     setLoading(false);
   }
 };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-lg">
@@ -119,13 +126,6 @@ const handleSignin = async (e: React.FormEvent) => {
             </button>
           </div>
         </form>
-
-        <div className="mt-6 text-center text-sm">
-          Don't have an account?{' '}
-          <Link href="../signup" className="font-medium text-indigo-600 hover:text-indigo-500">
-            Create a new account
-          </Link>
-        </div>
       </div>
     </div>
   );
